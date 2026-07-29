@@ -3,8 +3,10 @@
 **Last updated:** 2026-07-29  
 **Approval date:** 2026-07-29  
 **Current phase:** Inspection orchestration  
-**Current gate:** GC-DHI-03A integrated; ready for final human closure  
+**Current gate:** GC-DHI-03A approved and closed  
 **Next gate:** GC-DHI-03B — Inspection Orchestration and Risk Summary  
+**GC-DHI-03B status:** awaiting its implementation prompt  
+**Closure date:** 2026-07-29  
 **Target release:** v0.1.0-rc.1
 
 ---
@@ -19,9 +21,12 @@ GC-DHI-03A was integrated through pull request
 commit is `55cd1faab22c3a10876b57cdcc01438a3c7a20a1` and the merge commit is
 `d11c17926064c12c4214195a361e7ac1c239da9e`.
 
-Pull-request run `30490286220` and master run `30490397279` passed on Ubuntu and
-Windows. Each job completed 239 unit tests and one integration test with zero
-failures, zero skipped tests, zero build warnings and zero build errors.
+CORE-01, CORE-02, CORE-03 and CORE-05 are integrated. The prior governance
+commit is `510a6346f255a85472bd24e5fe6936e301dca7bc`.
+
+Pull-request run `30490286220`, master run `30490397279` and governance run
+`30490943376` passed on Ubuntu and Windows. Each job completed 240 tests with
+zero failures, zero skipped tests, zero build warnings and zero build errors.
 
 The master artifact `dbhealth-bootstrap-package` was independently audited. Its
 package SHA-256 is
@@ -34,7 +39,8 @@ passed isolated `dbhealth --help` and `dbhealth --version` validation.
 The stable golden fingerprint remains
 `sha256:34d49fc53bf780ac48ff7c076662687fee038d95701dc3272ee2cb6620cbd444`.
 No PostgreSQL integration, SQL, DBH001–DBH005 implementation or inspection
-orchestration exists. GC-DHI-03B is not authorized.
+orchestration exists. GC-DHI-03B remains unimplemented and awaits its own
+implementation prompt.
 
 ---
 
