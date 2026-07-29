@@ -25,5 +25,9 @@ csharp_style_var_elsewhere = false:suggestion
 indent_style = space
 indent_size = 2
 
+[tests/**/*.cs]
+# xUnit method names use Method_Scenario_Expectation; keep this naming exception test-only.
+dotnet_diagnostic.CA1707.severity = none
+
 [*.md]
 trim_trailing_whitespace = false
