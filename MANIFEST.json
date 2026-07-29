@@ -1,0 +1,23 @@
+{
+  "package": "DbHealthInspector_Governance_Pack",
+  "version": "0.2",
+  "generated": "2026-07-28",
+  "gate_closed": "GC-DHI-01",
+  "amendment": "Claude Code programmer / Codex DevOps operating model",
+  "next_gate": "GC-DHI-02",
+  "files": [
+    "AGENTS.md",
+    "README.md",
+    "docs/adr/0001-postgresql-first.md",
+    "docs/adr/0002-read-only-metadata-mode.md",
+    "docs/adr/0003-three-project-architecture.md",
+    "docs/agent-governance/AGENT_OPERATING_MODEL.md",
+    "docs/agent-governance/PROJECT_RULES.md",
+    "docs/agent-governance/PROJECT_STATE.md",
+    "docs/backlog/INITIAL_BACKLOG.md",
+    "prompts/CLAUDE_IMPLEMENTATION_HANDOFF_TEMPLATE.md",
+    "prompts/CODEX_REVIEW_INTEGRATION_TEMPLATE.md",
+    "prompts/GC-DHI-02_BOOTSTRAP_PROMPT.md",
+    "MANIFEST.json"
+  ]
+}

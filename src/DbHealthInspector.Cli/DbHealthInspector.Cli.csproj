@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <PackAsTool>true</PackAsTool>
+    <ToolCommandName>dbhealth</ToolCommandName>
+    <PackageId>DbHealthInspector.Tool</PackageId>
+    <Version>0.1.0-alpha.0</Version>
+    <Authors>Rolando Iván Medrano Chávez</Authors>
+    <Description>Read-only PostgreSQL metadata diagnostics CLI. Bootstrap baseline; inspection features are not implemented yet.</Description>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageTags>postgresql;database;diagnostics;metadata;read-only;cli</PackageTags>
+    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+    <PackageReleaseNotes>Repository bootstrap and technical baseline only. No database inspection behavior is included.</PackageReleaseNotes>
+    <PackageProjectUrl>https://github.com/rimch1985-ro/DbHealthInspector</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/rimch1985-ro/DbHealthInspector</RepositoryUrl>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <PackageOutputPath>..\..\artifacts\packages</PackageOutputPath>
+    <IsPackable>true</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.CommandLine" />
+    <ProjectReference Include="..\DbHealthInspector.Core\DbHealthInspector.Core.csproj" />
+    <ProjectReference Include="..\DbHealthInspector.PostgreSql\DbHealthInspector.PostgreSql.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\..\README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+</Project>

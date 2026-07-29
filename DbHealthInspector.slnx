@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/DbHealthInspector.Cli/DbHealthInspector.Cli.csproj" />
+    <Project Path="src/DbHealthInspector.Core/DbHealthInspector.Core.csproj" />
+    <Project Path="src/DbHealthInspector.PostgreSql/DbHealthInspector.PostgreSql.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/DbHealthInspector.IntegrationTests/DbHealthInspector.IntegrationTests.csproj" />
+    <Project Path="tests/DbHealthInspector.UnitTests/DbHealthInspector.UnitTests.csproj" />
+  </Folder>
+</Solution>

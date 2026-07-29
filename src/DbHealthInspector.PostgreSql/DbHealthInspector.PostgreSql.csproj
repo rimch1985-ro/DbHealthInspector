@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <PackageReference Include="Npgsql" />
+    <ProjectReference Include="..\DbHealthInspector.Core\DbHealthInspector.Core.csproj" />
+  </ItemGroup>
+</Project>

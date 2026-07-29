@@ -1,0 +1,155 @@
+# GC-DHI-02 Bootstrap Report
+
+**Date:** 2026-07-28  
+**Gate verdict:** READY FOR HUMAN REVIEW
+
+## 1. Environment inspected
+
+- Branch: `master`.
+- Initial working tree: governance pack only; Git was not initialized.
+- Current Git state: local repository initialized, no commits and no remote.
+- SDK: .NET SDK `10.0.200`; runtime `Microsoft.NETCore.App 10.0.4`.
+- Existing baseline: canonical governance documents, ADRs, backlog and prompts.
+- Solution format selected: `DbHealthInspector.slnx`, supported by the pinned SDK.
+- No conflicting source project or meaningful implementation existed.
+
+## 2. Files created
+
+### Governance
+
+- No canonical governance file was recreated. The existing pack was verified.
+- `docs/bootstrap/GC-DHI-02_REPORT.md` records this gate.
+
+### Solution/build
+
+- `DbHealthInspector.slnx`
+- `global.json`
+- `Directory.Build.props`
+- `Directory.Packages.props`
+- `.editorconfig`
+- `.gitignore`
+- `.gitattributes`
+- Local `.git/` repository metadata
+
+### Source
+
+- `src/DbHealthInspector.Core/DbHealthInspector.Core.csproj`
+- `src/DbHealthInspector.Core/AssemblyMarker.cs`
+- `src/DbHealthInspector.PostgreSql/DbHealthInspector.PostgreSql.csproj`
+- `src/DbHealthInspector.PostgreSql/AssemblyMarker.cs`
+- `src/DbHealthInspector.Cli/DbHealthInspector.Cli.csproj`
+- `src/DbHealthInspector.Cli/Program.cs`
+
+### Tests
+
+- `tests/DbHealthInspector.UnitTests/DbHealthInspector.UnitTests.csproj`
+- `tests/DbHealthInspector.UnitTests/BootstrapSmokeTests.cs`
+- `tests/DbHealthInspector.IntegrationTests/DbHealthInspector.IntegrationTests.csproj`
+- `tests/DbHealthInspector.IntegrationTests/BootstrapSmokeTests.cs`
+
+### Documentation
+
+- `README.es.md`
+- `LICENSE`
+- `CHANGELOG.md`
+- `SECURITY.md`
+- `CONTRIBUTING.md`
+- `docs/dependencies.md`
+
+### CI
+
+- `.github/workflows/ci.yml`
+
+## 3. Files modified
+
+| File | Reason |
+|---|---|
+| `README.md` | Replace the governance-pack landing text with an accurate English bootstrap/product README. |
+| `docs/agent-governance/PROJECT_STATE.md` | Record only proven SDK, dependency, CI, validation and gate-readiness facts. |
+
+No approved product decision, ADR, finding code or scope definition was changed.
+
+## 4. Dependency decisions
+
+| Package | Version | License | Scope | Decision |
+|---|---:|---|---|---|
+| System.CommandLine | 2.0.10 | MIT | Runtime, CLI | Accepted for the minimal command baseline. |
+| Npgsql | 10.0.3 | PostgreSQL | Runtime, adapter | Accepted as the PostgreSQL provider; no connection logic added. |
+| xunit.v3 | 3.2.2 | Apache-2.0 | Test only | Accepted instead of the deprecated `xunit` package. |
+| xunit.runner.visualstudio | 3.1.5 | Apache-2.0 | Test only, private asset | Accepted for VSTest discovery. |
+| Microsoft.NET.Test.Sdk | 18.8.1 | MIT | Test only | Accepted for `dotnet test`. |
+| Testcontainers.PostgreSql | 4.13.0 | MIT | Integration test only | Accepted for future fixtures; no container was started. |
+
+Exact official sources and acceptance reasons are recorded in
+[`docs/dependencies.md`](../dependencies.md).
+
+## 5. Validation
+
+| Command/check | Result | Evidence |
+|---|---|---|
+| `dotnet restore` | PASS | Five projects restored. |
+| `dotnet build --configuration Release --no-restore` | PASS | 0 warnings, 0 errors. |
+| `dotnet test --configuration Release --no-build` | PASS | 2 passed, 0 failed, 0 skipped. |
+| `dotnet pack src/DbHealthInspector.Cli --configuration Release --no-build` | PASS | `C:\PROYECTOS\PORTAFOLIO\Utilidades Empresariales\DbHealthInspector\artifacts\packages\DbHealthInspector.Tool.0.1.0-alpha.0.nupkg` |
+| `dotnet format DbHealthInspector.slnx --verify-no-changes --no-restore` | PASS | No formatting changes required. |
+| Vulnerability, deprecation and outdated audits | PASS | No vulnerable, deprecated or newer stable direct package reported. |
+| Isolated tool installation | PASS | `dbhealth --help` and `dbhealth --version` returned exit code 0. |
+| Package metadata and contents | PASS | ID, version, MIT license, repository data, `dbhealth` command and project assemblies verified. |
+| Package ID query | PASS | NuGet flat-container API returned 404; the candidate ID was unused at review time. |
+| JSON/XML and Markdown local links | PASS | Files parsed and no broken local link was found. |
+| Forbidden dependency and production SQL scans | PASS | None found. |
+| `git diff --check` and extended untracked-file audit | PASS | 38 untracked repository files inspected; no whitespace error found. |
+
+Package SHA-256:
+
+```text
+69851899BDFC427269379080C4A2C5AA0FCDBEE32F53D9C556579B1C35594CA1
+```
+
+## 6. Architecture verification
+
+```text
+DbHealthInspector.Core -> no project references
+DbHealthInspector.PostgreSql -> DbHealthInspector.Core
+DbHealthInspector.Cli -> DbHealthInspector.Core
+DbHealthInspector.Cli -> DbHealthInspector.PostgreSql
+DbHealthInspector.UnitTests -> DbHealthInspector.Core
+DbHealthInspector.IntegrationTests -> Core, PostgreSql and Cli
+```
+
+The production graph matches ADR-0003. Core has no infrastructure dependency.
+No Entity Framework Core, Dapper, MediatR, AutoMapper, Spectre.Console,
+logging framework, generic host or FluentAssertions dependency exists.
+
+No finding model, snapshot model, PostgreSQL query, database connection,
+diagnostic rule, JSON report behavior, Docker setup or automatic repair was
+implemented.
+
+## 7. Deviations and risks
+
+- The planned GitHub URL is
+  `https://github.com/rimch1985-ro/DbHealthInspector`, inferred from the
+  established portfolio convention. The remote repository does not exist yet.
+- The workflow is present and its commands passed locally, but an actual GitHub
+  Actions run requires a separately authorized remote integration.
+- Source Link was deferred because there is no remote commit to map.
+- System.CommandLine displays the managed assembly name in the help usage line
+  when installed as a tool; the installed command and package metadata are
+  correctly named `dbhealth`.
+- No commit, push, pull request, tag, package publication or release was
+  performed.
+
+## 8. Gate verdict
+
+READY FOR HUMAN REVIEW
+
+The local bootstrap criteria pass. The unchecked GitHub CI criterion requires
+the later authorized creation/integration of the remote repository.
+
+## 9. Next authorized gate
+
+Human review of GC-DHI-02, followed only by separately authorized remote
+repository creation/integration and first CI execution.
+
+No production diagnostic implementation is authorized until GC-DHI-02 receives
+human approval.

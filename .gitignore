@@ -1,0 +1,32 @@
+## .NET build output
+bin/
+obj/
+artifacts/
+
+## IDE and user state
+.vs/
+.vscode/
+.idea/
+*.user
+*.suo
+*.userprefs
+
+## Test output
+TestResults/
+coverage/
+*.trx
+
+## Packages and local tools
+*.nupkg
+*.snupkg
+.store/
+.tools/
+
+## OS files
+.DS_Store
+Thumbs.db
+
+## Local secrets and environment files
+.env
+.env.*
+!.env.example
