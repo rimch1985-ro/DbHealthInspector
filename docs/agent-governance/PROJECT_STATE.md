@@ -1,31 +1,40 @@
 # PROJECT_STATE — DbHealth Inspector
 
-**Last updated:** 2026-07-28  
-**Approval date:** 2026-07-28  
-**Current phase:** Core contracts and domain model  
-**Current gate:** GC-DHI-02 approved  
-**Next gate:** GC-DHI-03 — Core Contracts and Domain Model  
+**Last updated:** 2026-07-29  
+**Approval date:** 2026-07-29  
+**Current phase:** Inspection orchestration  
+**Current gate:** GC-DHI-03A integrated; ready for final human closure  
+**Next gate:** GC-DHI-03B — Inspection Orchestration and Risk Summary  
 **Target release:** v0.1.0-rc.1
 
 ---
 
 ## 1. Executive status
 
-DbHealth Inspector now has a locally and remotely validated .NET 10 repository
-baseline at `https://github.com/rimch1985-ro/DbHealthInspector`.
+DbHealth Inspector has a locally and remotely validated .NET 10 repository at
+`https://github.com/rimch1985-ro/DbHealthInspector`.
 
-The solution, projects, strict build configuration, exact dependencies,
-documentation, package baseline and CI workflow have been created. Local and
-GitHub-hosted restore, build, tests, pack and isolated-tool smoke validation
-pass.
+GC-DHI-03A was integrated through pull request
+`https://github.com/rimch1985-ro/DbHealthInspector/pull/1`. The implementation
+commit is `55cd1faab22c3a10876b57cdcc01438a3c7a20a1` and the merge commit is
+`d11c17926064c12c4214195a361e7ac1c239da9e`.
 
-The bootstrap local and remote validation was approved by the human project
-owner. Final verified run: `30424123966`; verified HEAD before this approval
-record: `285ab0386af9fec80410951b50a6c97ec8f3b9d2`. Ubuntu and Windows passed.
+Pull-request run `30490286220` and master run `30490397279` passed on Ubuntu and
+Windows. Each job completed 239 unit tests and one integration test with zero
+failures, zero skipped tests, zero build warnings and zero build errors.
 
-No production diagnostic behavior, PostgreSQL query or database connection has
-been implemented. Claude Code is responsible for GC-DHI-03; Codex will review
-and integrate its result.
+The master artifact `dbhealth-bootstrap-package` was independently audited. Its
+package SHA-256 is
+`17EDBA00EE1DF7DA858082BD615A4594FF6FAB9DDD9196BD00CA47789F01966D`;
+the artifact ZIP SHA-256 is
+`F9AB340A062F5CD551CFCDCDF384E1696BC5FFB49C627C004222B5D09D492ABC`.
+The package references the merge commit, includes `DbHealthInspector.Core`, and
+passed isolated `dbhealth --help` and `dbhealth --version` validation.
+
+The stable golden fingerprint remains
+`sha256:34d49fc53bf780ac48ff7c076662687fee038d95701dc3272ee2cb6620cbd444`.
+No PostgreSQL integration, SQL, DBH001–DBH005 implementation or inspection
+orchestration exists. GC-DHI-03B is not authorized.
 
 ---
 
@@ -135,18 +144,23 @@ Codex preserves capacity by avoiding duplicate feature implementation and focusi
 - `master` protection requires strict `Ubuntu` and `Windows` GitHub Actions
   checks. Force pushes and branch deletion are disabled; no third-party review
   is required.
+- GC-DHI-03A implemented the engine-neutral finding model, snapshot model,
+  diagnostic-rule contract and stable fingerprint format `fp1`.
+- Codex reviews R1–R3 completed; all R1/R2 findings were resolved before
+  integration.
+- Pull request `#1` passed its protected checks and was merged with an explicit
+  merge commit on 2026-07-29.
+- The GC-DHI-03A merge artifact was audited and installed only in a temporary
+  isolated tool path.
 
 ---
 
 ## 7. Work authorized next
 
-Only the following actions are authorized without opening a new product gate:
+Only human review and final closure of GC-DHI-03A is currently authorized.
 
-1. Claude Code implementation of GC-DHI-03 — Core Contracts and Domain Model.
-2. Codex review and integration of the GC-DHI-03 handoff.
-
-Production diagnostic implementation beyond the authorized Core contracts
-remains unauthorized until the relevant future gate.
+GC-DHI-03B — Inspection Orchestration and Risk Summary remains unauthorized
+until a separate human gate explicitly starts it.
 
 ---
 
@@ -156,6 +170,8 @@ The following are not yet authorized:
 
 - Implement PostgreSQL catalog queries.
 - Implement production diagnostic rules.
+- Implement CORE-04 inspection orchestration or risk summaries.
+- Start GC-DHI-03B.
 - Publish a NuGet package.
 - Publish a GitHub release.
 - Create release tags.
@@ -189,11 +205,18 @@ Resolved during GC-DHI-02:
 - Remote: `https://github.com/rimch1985-ro/DbHealthInspector.git`.
 - Required `master` checks: `Ubuntu` and `Windows`, strict mode.
 
+Resolved during GC-DHI-03A:
+
+- Evidence values use validated strings.
+- Fingerprints use version `fp1`, length-prefixed UTF-8 fields normalized to
+  Unicode Form C, sorted participating evidence and SHA-256 output.
+- Core collections use defensive copies exposed through non-modifiable
+  read-only wrappers.
+- `IndexSnapshot` uses order-sensitive structural equality.
+
 Pending product decisions:
 
 - Exact timeout defaults after validation.
-- Internal representation of evidence values.
-- Fingerprint canonicalization algorithm.
 - Reproducible invalid-index test strategy.
 - Console rendering format.
 - Source Link activation remains pending; package repository URL and exact
@@ -237,10 +260,23 @@ GC-DHI-02 will be approved when:
 
 ---
 
-## 12. Recommended next action
+## 12. GC-DHI-03A integration record
 
-Assign GC-DHI-03 to Claude Code and preserve the approved three-project
-architecture and dependency baseline.
+| Item | Verified value |
+|---|---|
+| Approval date | 2026-07-29 |
+| Pull request | `#1` |
+| Implementation commit | `55cd1faab22c3a10876b57cdcc01438a3c7a20a1` |
+| Merge commit | `d11c17926064c12c4214195a361e7ac1c239da9e` |
+| Pull-request CI | `30490286220` — Ubuntu and Windows passed |
+| Master CI | `30490397279` — Ubuntu and Windows passed |
+| Tests per job | 240 passed, 0 failed, 0 skipped |
+| Build per job | 0 warnings, 0 errors |
+| Package SHA-256 | `17EDBA00EE1DF7DA858082BD615A4594FF6FAB9DDD9196BD00CA47789F01966D` |
+| Golden fingerprint | `sha256:34d49fc53bf780ac48ff7c076662687fee038d95701dc3272ee2cb6620cbd444` |
 
-Codex should review and integrate the resulting handoff. Do not implement
-diagnostic rules or PostgreSQL inspection behavior in this gate.
+## 13. Recommended next action
+
+Human review and closure of GC-DHI-03A.
+
+GC-DHI-03B remains unauthorized.
