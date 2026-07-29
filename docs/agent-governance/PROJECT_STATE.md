@@ -1,23 +1,26 @@
 # PROJECT_STATE — DbHealth Inspector
 
 **Last updated:** 2026-07-28  
-**Current phase:** Repository bootstrap validation  
-**Current gate:** GC-DHI-02 executed locally; ready for human review  
-**Next gate:** Human review and authorized remote integration of GC-DHI-02  
+**Current phase:** Repository bootstrap final approval  
+**Current gate:** GC-DHI-02 remotely validated; ready for final human approval  
+**Next gate:** Final human approval of GC-DHI-02  
 **Target release:** v0.1.0-rc.1
 
 ---
 
 ## 1. Executive status
 
-DbHealth Inspector now has a locally validated .NET 10 repository baseline.
+DbHealth Inspector now has a locally and remotely validated .NET 10 repository
+baseline at `https://github.com/rimch1985-ro/DbHealthInspector`.
 
 The solution, projects, strict build configuration, exact dependencies,
-documentation, package baseline and CI workflow have been created. Local
-restore, build, tests, pack and isolated-tool smoke validation pass.
+documentation, package baseline and CI workflow have been created. Local and
+GitHub-hosted restore, build, tests, pack and isolated-tool smoke validation
+pass.
 
 No production diagnostic behavior, PostgreSQL query or database connection has
-been implemented. GC-DHI-02 is not approved until human review is complete.
+been implemented. GC-DHI-02 is ready for final human approval but is not
+approved until that review is complete.
 
 ---
 
@@ -108,6 +111,25 @@ Codex preserves capacity by avoiding duplicate feature implementation and focusi
 - GitHub Actions workflow created for Ubuntu and Windows.
 - `DbHealthInspector.Tool` package `0.1.0-alpha.0` built and installed successfully in an isolated tool path.
 - Local validation completed with zero build warnings, zero build errors and two passing smoke tests.
+- Public repository created at `https://github.com/rimch1985-ro/DbHealthInspector`
+  with `master` as its default branch and Issues and Actions enabled.
+- Initial commit `e150d54b1b77b3fee37934c4561961d036f50194` published without
+  generated output, package binaries or detected secrets.
+- GitHub Actions references pinned to immutable full commit SHA values.
+- The initial run `30423760906` exposed a truncated `upload-artifact` SHA;
+  Windows passed and Ubuntu stopped during job setup.
+- Corrective commit `f8bf94c870889531cd26e374785604133e0883f6` fixed only the
+  workflow reference without amending or rewriting history.
+- GitHub Actions run `30423850599` passed on Ubuntu and Windows with zero build
+  warnings, zero build errors and two passing tests per job.
+- CI artifact `dbhealth-bootstrap-package` downloaded and audited. Its package
+  SHA-256 is
+  `E63D2E76658C85F467FD76945A98F594E4A45377A6426A34B84133489FF305EB`.
+- The CI package installed successfully in an isolated tool path and returned
+  success for `dbhealth --help` and `dbhealth --version`.
+- `master` protection requires strict `Ubuntu` and `Windows` GitHub Actions
+  checks. Force pushes and branch deletion are disabled; no third-party review
+  is required.
 
 ---
 
@@ -115,9 +137,8 @@ Codex preserves capacity by avoiding duplicate feature implementation and focusi
 
 Only the following actions are authorized without opening a new product gate:
 
-1. Human review of the GC-DHI-02 bootstrap report.
+1. Final human review of the GC-DHI-02 bootstrap and remote-integration report.
 2. Focused correction of bootstrap defects found during review.
-3. Remote repository creation, push and CI execution only after explicit human authorization.
 
 Production diagnostic implementation remains unauthorized until GC-DHI-02 is
 approved.
@@ -160,6 +181,8 @@ Resolved during GC-DHI-02:
 - Analyzer baseline: built-in .NET analyzers at `latest-recommended`, style
   enforcement during build and warnings as errors.
 - GitHub Actions matrix: `ubuntu-latest` and `windows-latest`.
+- Remote: `https://github.com/rimch1985-ro/DbHealthInspector.git`.
+- Required `master` checks: `Ubuntu` and `Windows`, strict mode.
 
 Pending product decisions:
 
@@ -168,7 +191,8 @@ Pending product decisions:
 - Fingerprint canonicalization algorithm.
 - Reproducible invalid-index test strategy.
 - Console rendering format.
-- Source Link activation after the remote repository and first commit exist.
+- Source Link activation remains pending; package repository URL and exact
+  commit metadata are already present without adding a new dependency.
 
 ---
 
@@ -201,7 +225,7 @@ GC-DHI-02 will be approved when:
 - [x] Empty test suites execute.
 - [x] Dependency licenses are reviewed.
 - [x] Package metadata is present.
-- [ ] CI skeleton passes in GitHub; local equivalent commands pass, but the remote does not exist yet.
+- [x] CI skeleton passes in GitHub on Ubuntu and Windows.
 - [x] No production diagnostic behavior has been implemented prematurely.
 - [x] Bootstrap report lists exact versions and commands.
 - [x] `PROJECT_STATE.md` is updated.
@@ -210,9 +234,7 @@ GC-DHI-02 will be approved when:
 
 ## 12. Recommended next action
 
-Review `docs/bootstrap/GC-DHI-02_REPORT.md`.
+Perform final human review of `docs/bootstrap/GC-DHI-02_REPORT.md`.
 
-After explicit authorization, create the planned GitHub repository, push the
-bootstrap through the approved integration workflow and verify the first CI
-run. Do not implement PostgreSQL inspection logic or diagnostic rules until
-GC-DHI-02 receives human approval.
+Do not continue to GC-DHI-03 or implement PostgreSQL inspection logic or
+diagnostic rules until GC-DHI-02 receives human approval.

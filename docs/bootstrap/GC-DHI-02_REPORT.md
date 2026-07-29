@@ -1,13 +1,17 @@
 # GC-DHI-02 Bootstrap Report
 
 **Date:** 2026-07-28  
-**Gate verdict:** READY FOR HUMAN REVIEW
+**Gate verdict:** READY FOR FINAL HUMAN APPROVAL
 
 ## 1. Environment inspected
 
 - Branch: `master`.
 - Initial working tree: governance pack only; Git was not initialized.
-- Current Git state: local repository initialized, no commits and no remote.
+- Current Git state: public remote configured, `master` published and protected.
+- Repository: `https://github.com/rimch1985-ro/DbHealthInspector`.
+- Initial commit: `e150d54b1b77b3fee37934c4561961d036f50194`.
+- Validated bootstrap commit after the CI correction:
+  `f8bf94c870889531cd26e374785604133e0883f6`.
 - SDK: .NET SDK `10.0.200`; runtime `Microsoft.NETCore.App 10.0.4`.
 - Existing baseline: canonical governance documents, ADRs, backlog and prompts.
 - Solution format selected: `DbHealthInspector.slnx`, supported by the pinned SDK.
@@ -64,8 +68,10 @@
 
 | File | Reason |
 |---|---|
+| `.github/workflows/ci.yml` | Pin official actions to immutable full commit SHA values and correct the initially truncated `upload-artifact` SHA. |
 | `README.md` | Replace the governance-pack landing text with an accurate English bootstrap/product README. |
 | `docs/agent-governance/PROJECT_STATE.md` | Record only proven SDK, dependency, CI, validation and gate-readiness facts. |
+| `docs/bootstrap/GC-DHI-02_REPORT.md` | Record verified remote, CI, artifact and branch-protection evidence. |
 
 No approved product decision, ADR, finding code or scope definition was changed.
 
@@ -99,12 +105,31 @@ Exact official sources and acceptance reasons are recorded in
 | JSON/XML and Markdown local links | PASS | Files parsed and no broken local link was found. |
 | Forbidden dependency and production SQL scans | PASS | None found. |
 | `git diff --check` and extended untracked-file audit | PASS | 38 untracked repository files inspected; no whitespace error found. |
+| Initial GitHub Actions run `30423760906` | FAIL, corrected | Windows passed; Ubuntu rejected a truncated `upload-artifact` SHA during job setup. |
+| Corrected GitHub Actions run `30423850599` | PASS | Ubuntu and Windows passed every required step on commit `f8bf94c870889531cd26e374785604133e0883f6`. |
+| CI build and tests | PASS | Each job reported 0 warnings, 0 errors, 2 passed, 0 failed and 0 skipped. |
+| CI artifact audit | PASS | Metadata, contents, exact repository commit and isolated installation verified. |
 
-Package SHA-256:
+Local package SHA-256:
 
 ```text
 69851899BDFC427269379080C4A2C5AA0FCDBEE32F53D9C556579B1C35594CA1
 ```
+
+CI package:
+
+```text
+Artifact: dbhealth-bootstrap-package
+File: DbHealthInspector.Tool.0.1.0-alpha.0.nupkg
+Package size: 829637 bytes
+Package SHA-256: E63D2E76658C85F467FD76945A98F594E4A45377A6426A34B84133489FF305EB
+Artifact archive size: 824892 bytes
+Artifact archive SHA-256: 77F70AA0D8984469854DB35D7E6DC8B6C67D5E5565571D989CB91EC873AB57FB
+```
+
+The CI package declares `DbHealthInspector.Tool` version `0.1.0-alpha.0`, MIT,
+the expected repository URL and commit, the `DotnetTool` package type and the
+`dbhealth` command.
 
 ## 6. Architecture verification
 
@@ -127,29 +152,29 @@ implemented.
 
 ## 7. Deviations and risks
 
-- The planned GitHub URL is
-  `https://github.com/rimch1985-ro/DbHealthInspector`, inferred from the
-  established portfolio convention. The remote repository does not exist yet.
-- The workflow is present and its commands passed locally, but an actual GitHub
-  Actions run requires a separately authorized remote integration.
-- Source Link was deferred because there is no remote commit to map.
+- Initial run `30423760906` failed because the `upload-artifact` SHA lacked its
+  final hexadecimal character. Corrective commit
+  `f8bf94c870889531cd26e374785604133e0883f6` fixed only that workflow
+  reference; history was not amended or rewritten.
+- Source Link remains pending. Repository URL and exact commit metadata are
+  already embedded in the package, and no new dependency was introduced.
 - System.CommandLine displays the managed assembly name in the help usage line
   when installed as a tool; the installed command and package metadata are
   correctly named `dbhealth`.
-- No commit, push, pull request, tag, package publication or release was
-  performed.
+- Branch protection does not require third-party approval and is not enforced
+  for repository administrators, preserving the owner's individual workflow.
+- No pull request, tag, package publication or release was performed.
 
 ## 8. Gate verdict
 
-READY FOR HUMAN REVIEW
+READY FOR FINAL HUMAN APPROVAL
 
-The local bootstrap criteria pass. The unchecked GitHub CI criterion requires
-the later authorized creation/integration of the remote repository.
+The local and remote bootstrap criteria pass. `master` requires strict Ubuntu
+and Windows checks; force push and deletion are disabled.
 
 ## 9. Next authorized gate
 
-Human review of GC-DHI-02, followed only by separately authorized remote
-repository creation/integration and first CI execution.
+Final human review of GC-DHI-02. Do not continue to GC-DHI-03.
 
 No production diagnostic implementation is authorized until GC-DHI-02 receives
 human approval.
