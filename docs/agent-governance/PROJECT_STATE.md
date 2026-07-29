@@ -1,9 +1,10 @@
 # PROJECT_STATE — DbHealth Inspector
 
 **Last updated:** 2026-07-28  
-**Current phase:** Repository bootstrap final approval  
-**Current gate:** GC-DHI-02 remotely validated; ready for final human approval  
-**Next gate:** Final human approval of GC-DHI-02  
+**Approval date:** 2026-07-28  
+**Current phase:** Core contracts and domain model  
+**Current gate:** GC-DHI-02 approved  
+**Next gate:** GC-DHI-03 — Core Contracts and Domain Model  
 **Target release:** v0.1.0-rc.1
 
 ---
@@ -18,9 +19,13 @@ documentation, package baseline and CI workflow have been created. Local and
 GitHub-hosted restore, build, tests, pack and isolated-tool smoke validation
 pass.
 
+The bootstrap local and remote validation was approved by the human project
+owner. Final verified run: `30424123966`; verified HEAD before this approval
+record: `285ab0386af9fec80410951b50a6c97ec8f3b9d2`. Ubuntu and Windows passed.
+
 No production diagnostic behavior, PostgreSQL query or database connection has
-been implemented. GC-DHI-02 is ready for final human approval but is not
-approved until that review is complete.
+been implemented. Claude Code is responsible for GC-DHI-03; Codex will review
+and integrate its result.
 
 ---
 
@@ -137,11 +142,11 @@ Codex preserves capacity by avoiding duplicate feature implementation and focusi
 
 Only the following actions are authorized without opening a new product gate:
 
-1. Final human review of the GC-DHI-02 bootstrap and remote-integration report.
-2. Focused correction of bootstrap defects found during review.
+1. Claude Code implementation of GC-DHI-03 — Core Contracts and Domain Model.
+2. Codex review and integration of the GC-DHI-03 handoff.
 
-Production diagnostic implementation remains unauthorized until GC-DHI-02 is
-approved.
+Production diagnostic implementation beyond the authorized Core contracts
+remains unauthorized until the relevant future gate.
 
 ---
 
@@ -234,7 +239,8 @@ GC-DHI-02 will be approved when:
 
 ## 12. Recommended next action
 
-Perform final human review of `docs/bootstrap/GC-DHI-02_REPORT.md`.
+Assign GC-DHI-03 to Claude Code and preserve the approved three-project
+architecture and dependency baseline.
 
-Do not continue to GC-DHI-03 or implement PostgreSQL inspection logic or
-diagnostic rules until GC-DHI-02 receives human approval.
+Codex should review and integrate the resulting handoff. Do not implement
+diagnostic rules or PostgreSQL inspection behavior in this gate.

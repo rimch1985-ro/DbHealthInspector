@@ -1,7 +1,7 @@
 # GC-DHI-02 Bootstrap Report
 
 **Date:** 2026-07-28  
-**Gate verdict:** READY FOR FINAL HUMAN APPROVAL
+**Gate verdict:** APPROVED
 
 ## 1. Environment inspected
 
@@ -174,7 +174,20 @@ and Windows checks; force push and deletion are disabled.
 
 ## 9. Next authorized gate
 
-Final human review of GC-DHI-02. Do not continue to GC-DHI-03.
+Final human approval is recorded below. The next authorized gate is GC-DHI-03 —
+Core Contracts and Domain Model, assigned to Claude Code and subject to Codex
+review and integration.
 
-No production diagnostic implementation is authorized until GC-DHI-02 receives
-human approval.
+## 10. Final approval record
+
+- Final human approval: `2026-07-28`
+- Final verified run: `30424123966`
+- Verified HEAD before approval record: `285ab0386af9fec80410951b50a6c97ec8f3b9d2`
+
+A later documentation-only commit produced run `30424123966`. Its Ubuntu and
+Windows jobs passed. The package from that run was independently verified
+against commit `285ab0386af9fec80410951b50a6c97ec8f3b9d2`.
+
+No production diagnostic implementation was performed during GC-DHI-02.
+Diagnostic implementation remains subject to the separately authorized
+GC-DHI-03 workflow.
