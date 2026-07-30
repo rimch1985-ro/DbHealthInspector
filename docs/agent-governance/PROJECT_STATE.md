@@ -1,12 +1,10 @@
 # PROJECT_STATE — DbHealth Inspector
 
-**Last updated:** 2026-07-29  
-**Approval date:** 2026-07-29  
-**Current phase:** Inspection orchestration  
-**Current gate:** GC-DHI-03A approved and closed  
-**Next gate:** GC-DHI-03B — Inspection Orchestration and Risk Summary  
-**GC-DHI-03B status:** awaiting its implementation prompt  
-**Closure date:** 2026-07-29  
+**Last updated:** 2026-07-30  
+**Authorization date:** 2026-07-30  
+**Current phase:** Inspection orchestration completed  
+**Current gate:** GC-DHI-03B integrated; ready for final human closure  
+**Next work:** PostgreSQL Metadata Adapter — awaiting separate human authorization  
 **Target release:** v0.1.0-rc.1
 
 ---
@@ -16,31 +14,32 @@
 DbHealth Inspector has a locally and remotely validated .NET 10 repository at
 `https://github.com/rimch1985-ro/DbHealthInspector`.
 
-GC-DHI-03A was integrated through pull request
-`https://github.com/rimch1985-ro/DbHealthInspector/pull/1`. The implementation
-commit is `55cd1faab22c3a10876b57cdcc01438a3c7a20a1` and the merge commit is
-`d11c17926064c12c4214195a361e7ac1c239da9e`.
+GC-DHI-03B was integrated through pull request
+`https://github.com/rimch1985-ro/DbHealthInspector/pull/2`. The implementation
+commit is `1b342433c170fb0cf6a1a4064f3db761b3d22fbb` and the merge commit is
+`9c3054a0220f88ab6ecc6d8248de8b8a9cdffbd5`.
 
-CORE-01, CORE-02, CORE-03 and CORE-05 are integrated. The prior governance
-commit is `510a6346f255a85472bd24e5fe6936e301dca7bc`.
+CORE-01 through CORE-05 are integrated. CORE-04 provides engine-neutral
+inspection orchestration and deterministic risk summaries without adding an
+engine adapter or executable diagnostic rules.
 
-Pull-request run `30490286220`, master run `30490397279` and governance run
-`30490943376` passed on Ubuntu and Windows. Each job completed 240 tests with
-zero failures, zero skipped tests, zero build warnings and zero build errors.
+Pull-request run `30569512288` and master run `30569647753` passed on Ubuntu and
+Windows. Each job completed 365 tests with zero failures, zero skipped tests,
+zero build warnings and zero build errors.
 
 The master artifact `dbhealth-bootstrap-package` was independently audited. Its
 package SHA-256 is
-`17EDBA00EE1DF7DA858082BD615A4594FF6FAB9DDD9196BD00CA47789F01966D`;
+`243761AB6AC299DD7630499172A899346EC72A6C0748433A59056E76F61DEB89`;
 the artifact ZIP SHA-256 is
-`F9AB340A062F5CD551CFCDCDF384E1696BC5FFB49C627C004222B5D09D492ABC`.
+`669E473FDEB750C2960030080E7EA1DB5FC81A313BB27CADB445FBCFB7C8B606`.
 The package references the merge commit, includes `DbHealthInspector.Core`, and
 passed isolated `dbhealth --help` and `dbhealth --version` validation.
 
 The stable golden fingerprint remains
 `sha256:34d49fc53bf780ac48ff7c076662687fee038d95701dc3272ee2cb6620cbd444`.
-No PostgreSQL integration, SQL, DBH001–DBH005 implementation or inspection
-orchestration exists. GC-DHI-03B remains unimplemented and awaits its own
-implementation prompt.
+No PostgreSQL integration, SQL, DBH001–DBH005 implementation, CLI inspection
+behavior or JSON reporting was added. The PostgreSQL Metadata Adapter and the
+next functional gate remain unauthorized, unimplemented and not started.
 
 ---
 
@@ -158,15 +157,25 @@ Codex preserves capacity by avoiding duplicate feature implementation and focusi
   merge commit on 2026-07-29.
 - The GC-DHI-03A merge artifact was audited and installed only in a temporary
   isolated tool path.
+- GC-DHI-03B implemented CORE-04: snapshot-provider abstraction, enabled-rule
+  registration, sequential capability-aware orchestration, isolated execution
+  outcomes, cancellation semantics, immutable inspection results, summary
+  counts and deterministic overall risk.
+- Codex reviews R1 and R2 completed after Claude Code correction C1; all
+  findings were resolved before integration.
+- Pull request `#2` passed its protected checks and was merged with an explicit
+  merge commit on 2026-07-30.
+- The GC-DHI-03B merge artifact was audited and installed only in a temporary
+  isolated tool path, which was removed after verification.
 
 ---
 
 ## 7. Work authorized next
 
-Only human review and final closure of GC-DHI-03A is currently authorized.
+Only human review and final closure of GC-DHI-03B is currently authorized.
 
-GC-DHI-03B — Inspection Orchestration and Risk Summary remains unauthorized
-until a separate human gate explicitly starts it.
+The PostgreSQL Metadata Adapter requires separate human authorization and
+remains unimplemented.
 
 ---
 
@@ -175,9 +184,9 @@ until a separate human gate explicitly starts it.
 The following are not yet authorized:
 
 - Implement PostgreSQL catalog queries.
+- Start the PostgreSQL Metadata Adapter.
 - Implement production diagnostic rules.
-- Implement CORE-04 inspection orchestration or risk summaries.
-- Start GC-DHI-03B.
+- Start the next functional gate.
 - Publish a NuGet package.
 - Publish a GitHub release.
 - Create release tags.
@@ -219,6 +228,18 @@ Resolved during GC-DHI-03A:
 - Core collections use defensive copies exposed through non-modifiable
   read-only wrappers.
 - `IndexSnapshot` uses order-sensitive structural equality.
+
+Resolved during GC-DHI-03B:
+
+- The snapshot provider is engine-neutral and is invoked exactly once.
+- Enabled rules execute sequentially in ordinal finding-code order.
+- Unavailable capabilities are canonicalized by numeric `CapabilityKind`.
+- Requested cancellation and associated cancellation exceptions propagate
+  without partial results.
+- Recoverable failures are isolated; process-level exceptions propagate.
+- Findings, execution records and derived results are immutable.
+- Summary counts and overall risk are derived deterministically from final
+  collections.
 
 Pending product decisions:
 
@@ -281,8 +302,28 @@ GC-DHI-02 will be approved when:
 | Package SHA-256 | `17EDBA00EE1DF7DA858082BD615A4594FF6FAB9DDD9196BD00CA47789F01966D` |
 | Golden fingerprint | `sha256:34d49fc53bf780ac48ff7c076662687fee038d95701dc3272ee2cb6620cbd444` |
 
-## 13. Recommended next action
+## 13. GC-DHI-03B integration record
 
-Human review and closure of GC-DHI-03A.
+| Item | Verified value |
+|---|---|
+| Authorization date | 2026-07-30 |
+| Backlog item | `CORE-04` integrated |
+| Pull request | `#2` |
+| Implementation commit | `1b342433c170fb0cf6a1a4064f3db761b3d22fbb` |
+| Merge commit | `9c3054a0220f88ab6ecc6d8248de8b8a9cdffbd5` |
+| Pull-request CI | `30569512288` — Ubuntu and Windows passed |
+| Master CI | `30569647753` — Ubuntu and Windows passed |
+| Tests per job | 365 passed, 0 failed, 0 skipped |
+| Build per job | 0 warnings, 0 errors |
+| Package SHA-256 | `243761AB6AC299DD7630499172A899346EC72A6C0748433A59056E76F61DEB89` |
+| Artifact ZIP SHA-256 | `669E473FDEB750C2960030080E7EA1DB5FC81A313BB27CADB445FBCFB7C8B606` |
+| Golden fingerprint | `sha256:34d49fc53bf780ac48ff7c076662687fee038d95701dc3272ee2cb6620cbd444` |
+| Functional exclusions | No PostgreSQL, SQL, executable DBH rules, CLI inspection or JSON reporting |
 
-GC-DHI-03B remains unauthorized.
+The next functional gate has not been started.
+
+## 14. Recommended next action
+
+Human review and closure of GC-DHI-03B.
+
+The PostgreSQL Metadata Adapter remains unauthorized and unimplemented.
