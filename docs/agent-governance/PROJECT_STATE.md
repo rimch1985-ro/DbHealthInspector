@@ -2,9 +2,10 @@
 
 **Last updated:** 2026-07-30  
 **Authorization date:** 2026-07-30  
-**Current phase:** Inspection orchestration completed  
-**Current gate:** GC-DHI-03B integrated; ready for final human closure  
-**Next work:** PostgreSQL Metadata Adapter — awaiting separate human authorization  
+**Current phase:** PostgreSQL Metadata Adapter — awaiting authorization  
+**Current gate:** GC-DHI-03B approved and closed  
+**Next work:** PostgreSQL Metadata Adapter — not started  
+**Closure date:** 2026-07-30  
 **Target release:** v0.1.0-rc.1
 
 ---
@@ -23,9 +24,9 @@ CORE-01 through CORE-05 are integrated. CORE-04 provides engine-neutral
 inspection orchestration and deterministic risk summaries without adding an
 engine adapter or executable diagnostic rules.
 
-Pull-request run `30569512288` and master run `30569647753` passed on Ubuntu and
-Windows. Each job completed 365 tests with zero failures, zero skipped tests,
-zero build warnings and zero build errors.
+Pull-request run `30569512288`, master run `30569647753` and governance run
+`30570469692` passed on Ubuntu and Windows. Each job completed 365 tests with
+zero failures, zero skipped tests, zero build warnings and zero build errors.
 
 The master artifact `dbhealth-bootstrap-package` was independently audited. Its
 package SHA-256 is
@@ -37,9 +38,9 @@ passed isolated `dbhealth --help` and `dbhealth --version` validation.
 
 The stable golden fingerprint remains
 `sha256:34d49fc53bf780ac48ff7c076662687fee038d95701dc3272ee2cb6620cbd444`.
-No PostgreSQL integration, SQL, DBH001–DBH005 implementation, CLI inspection
-behavior or JSON reporting was added. The PostgreSQL Metadata Adapter and the
-next functional gate remain unauthorized, unimplemented and not started.
+No PostgreSQL integration, SQL, executable DBH rules, CLI inspection behavior
+or JSON reporting has been implemented. The PostgreSQL Metadata Adapter is not
+started; it requires a separate human-authorized gate.
 
 ---
 
@@ -167,15 +168,15 @@ Codex preserves capacity by avoiding duplicate feature implementation and focusi
   merge commit on 2026-07-30.
 - The GC-DHI-03B merge artifact was audited and installed only in a temporary
   isolated tool path, which was removed after verification.
+- Human closure of GC-DHI-03B was recorded on 2026-07-30 in governance commit
+  `e3c0552a91afb148c8470134e5f4e98fe03593b7`.
 
 ---
 
 ## 7. Work authorized next
 
-Only human review and final closure of GC-DHI-03B is currently authorized.
-
-The PostgreSQL Metadata Adapter requires separate human authorization and
-remains unimplemented.
+The PostgreSQL Metadata Adapter requires separate human authorization and is
+not started.
 
 ---
 
@@ -320,7 +321,8 @@ GC-DHI-02 will be approved when:
 | Golden fingerprint | `sha256:34d49fc53bf780ac48ff7c076662687fee038d95701dc3272ee2cb6620cbd444` |
 | Functional exclusions | No PostgreSQL, SQL, executable DBH rules, CLI inspection or JSON reporting |
 
-The next functional gate has not been started.
+The PostgreSQL Metadata Adapter is not started; it requires a separate
+human-authorized gate.
 
 ## 14. Recommended next action
 
