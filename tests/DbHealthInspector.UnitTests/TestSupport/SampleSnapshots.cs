@@ -86,6 +86,20 @@ internal static class SampleSnapshots
             new CapabilityState(CapabilityKind.DataProfiling, CapabilityStatus.Disabled, "Disabled by product design in v0.1.0."),
         ]);
 
+    public static CapabilitySnapshot Capabilities(
+        CapabilityStatus catalogMetadata = CapabilityStatus.Available,
+        CapabilityStatus usageStatistics = CapabilityStatus.Available,
+        CapabilityStatus dataProfiling = CapabilityStatus.Disabled) =>
+        new(
+        [
+            new CapabilityState(CapabilityKind.CatalogMetadata, catalogMetadata, Reason(catalogMetadata)),
+            new CapabilityState(CapabilityKind.UsageStatistics, usageStatistics, Reason(usageStatistics)),
+            new CapabilityState(CapabilityKind.DataProfiling, dataProfiling, Reason(dataProfiling)),
+        ]);
+
+    private static string? Reason(CapabilityStatus status) =>
+        status == CapabilityStatus.Available ? null : "Not available for this test.";
+
     public static StatisticsSnapshot StatisticsWithReset(DateTimeOffset? resetAtUtc = null) =>
         new(resetAtUtc ?? new DateTimeOffset(2026, 7, 1, 0, 0, 0, TimeSpan.Zero));
 
