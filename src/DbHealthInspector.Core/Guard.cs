@@ -139,4 +139,33 @@ internal static class Guard
 
         return Array.AsReadOnly(copy);
     }
+
+    /// <summary>
+    /// Throws when <paramref name="source"/> is <see langword="null"/>, contains an undefined
+    /// enum value, or contains a duplicate value. Otherwise returns a defensive, independent,
+    /// order-preserving, genuinely non-modifiable copy — see <see cref="CopyDefensively"/> for
+    /// exactly which mutation attempts throw <see cref="NotSupportedException"/>.
+    /// </summary>
+    public static IReadOnlyList<TEnum> CopyDefensivelyRejectingUndefinedOrDuplicateEnumValues<TEnum>(
+        IReadOnlyCollection<TEnum>? source, string paramName)
+        where TEnum : struct, Enum
+    {
+        ArgumentNullException.ThrowIfNull(source, paramName);
+        var copy = new TEnum[source.Count];
+        var seen = new HashSet<TEnum>();
+        int index = 0;
+        foreach (TEnum item in source)
+        {
+            AgainstUndefinedEnum(item, paramName);
+            if (!seen.Add(item))
+            {
+                throw new ArgumentException($"Duplicate value '{item}'.", paramName);
+            }
+
+            copy[index] = item;
+            index++;
+        }
+
+        return Array.AsReadOnly(copy);
+    }
 }
