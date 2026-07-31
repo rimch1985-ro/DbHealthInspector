@@ -168,8 +168,8 @@ Codex preserves capacity by avoiding duplicate feature implementation and focusi
   merge commit on 2026-07-30.
 - The GC-DHI-03B merge artifact was audited and installed only in a temporary
   isolated tool path, which was removed after verification.
-- Human closure of GC-DHI-03B was recorded on 2026-07-30 in governance commit
-  `e3c0552a91afb148c8470134e5f4e98fe03593b7`.
+- Human closure of GC-DHI-03B was approved on 2026-07-30 and recorded in
+  closure commit `55c538c88360a0a16e58203f949499ae6db962e9`.
 
 ---
 
