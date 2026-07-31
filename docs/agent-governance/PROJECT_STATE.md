@@ -2,10 +2,12 @@
 
 **Last updated:** 2026-07-30  
 **Authorization date:** 2026-07-30  
-**Current phase:** PostgreSQL Metadata Adapter — awaiting authorization  
-**Current gate:** GC-DHI-03B approved and closed  
-**Next work:** PostgreSQL Metadata Adapter — not started  
-**Closure date:** 2026-07-30  
+**Current phase:** PostgreSQL Metadata Adapter  
+**Current gate:** GC-DHI-04 defined  
+**Authorized next subgate:** GC-DHI-04A  
+**GC-DHI-04A status:** authorized for implementation after this definition is integrated  
+**GC-DHI-04B–04F:** unauthorized  
+**GC-DHI-03B closure date:** 2026-07-30  
 **Target release:** v0.1.0-rc.1
 
 ---
@@ -24,6 +26,8 @@ CORE-01 through CORE-05 are integrated. CORE-04 provides engine-neutral
 inspection orchestration and deterministic risk summaries without adding an
 engine adapter or executable diagnostic rules.
 
+GC-DHI-03B remains approved and closed.
+
 Pull-request run `30569512288`, master run `30569647753` and governance run
 `30570469692` passed on Ubuntu and Windows. Each job completed 365 tests with
 zero failures, zero skipped tests, zero build warnings and zero build errors.
@@ -38,9 +42,13 @@ passed isolated `dbhealth --help` and `dbhealth --version` validation.
 
 The stable golden fingerprint remains
 `sha256:34d49fc53bf780ac48ff7c076662687fee038d95701dc3272ee2cb6620cbd444`.
+GC-DHI-04 defines the PostgreSQL Metadata Adapter as six sequential subgates.
+GC-DHI-04A is the only implementation subgate authorized next; GC-DHI-04B
+through GC-DHI-04F remain unauthorized.
+
 No PostgreSQL integration, SQL, executable DBH rules, CLI inspection behavior
-or JSON reporting has been implemented. The PostgreSQL Metadata Adapter is not
-started; it requires a separate human-authorized gate.
+or JSON reporting has been implemented. Defining GC-DHI-04 does not start or
+implement the adapter.
 
 ---
 
@@ -170,13 +178,21 @@ Codex preserves capacity by avoiding duplicate feature implementation and focusi
   isolated tool path, which was removed after verification.
 - Human closure of GC-DHI-03B was approved on 2026-07-30 and recorded in
   closure commit `55c538c88360a0a16e58203f949499ae6db962e9`.
+- GC-DHI-04 was defined as six sequential PostgreSQL Metadata Adapter
+  subgates, with GC-DHI-04A authorized as the only next implementation
+  subgate.
 
 ---
 
 ## 7. Work authorized next
 
-The PostgreSQL Metadata Adapter requires separate human authorization and is
-not started.
+Prepare the Claude Code implementation prompt for GC-DHI-04A — Connection
+Boundary and Secret Hygiene.
+
+After this definition is integrated, GC-DHI-04A is authorized for
+implementation. It must complete its implementation, Codex review, corrections,
+human approval, PR integration, green CI, governance record and closure before
+GC-DHI-04B can be considered.
 
 ---
 
@@ -184,8 +200,9 @@ not started.
 
 The following are not yet authorized:
 
-- Implement PostgreSQL catalog queries.
-- Start the PostgreSQL Metadata Adapter.
+- Implement GC-DHI-04B through GC-DHI-04F.
+- Skip or combine GC-DHI-04 subgates.
+- Implement PostgreSQL catalog queries before their authorized subgate.
 - Implement production diagnostic rules.
 - Start the next functional gate.
 - Publish a NuGet package.
@@ -247,6 +264,11 @@ Pending product decisions:
 - Exact timeout defaults after validation.
 - Reproducible invalid-index test strategy.
 - Console rendering format.
+- Final CLI error format.
+- Connection-source precedence.
+- Permanent PostgreSQL 15/18 CI matrix.
+- Exact minimum PostgreSQL role permissions.
+- Final hostname policy for reports.
 - Source Link activation remains pending; package repository URL and exact
   commit metadata are already present without adding a new dependency.
 
@@ -321,11 +343,25 @@ GC-DHI-02 will be approved when:
 | Golden fingerprint | `sha256:34d49fc53bf780ac48ff7c076662687fee038d95701dc3272ee2cb6620cbd444` |
 | Functional exclusions | No PostgreSQL, SQL, executable DBH rules, CLI inspection or JSON reporting |
 
-The PostgreSQL Metadata Adapter is not started; it requires a separate
-human-authorized gate.
+## 14. GC-DHI-04 definition record
 
-## 14. Recommended next action
+| Item | Defined value |
+|---|---|
+| Phase | PostgreSQL Metadata Adapter |
+| Sequence | `GC-DHI-04A → GC-DHI-04B → GC-DHI-04C → GC-DHI-04D → GC-DHI-04E → GC-DHI-04F` |
+| Authorized next | `GC-DHI-04A — Connection Boundary and Secret Hygiene` |
+| Unauthorized | `GC-DHI-04B` through `GC-DHI-04F` |
+| Architecture | `PostgreSql → Core`; Core has no infrastructure dependency |
+| Safety | Static inventoried SQL, parameterized external values, explicit read-only transaction |
+| Supported versions | PostgreSQL 15–18; mandatory 15/18 verification in GC-DHI-04F |
+| Product implementation | Not started by the definition gate |
 
-Human review and closure of GC-DHI-03B.
+Each subgate requires implementation by Claude Code, Codex review, correction
+when needed, human approval, PR integration, green CI, governance registration
+and closure before the next subgate may begin.
 
-The PostgreSQL Metadata Adapter remains unauthorized and unimplemented.
+## 15. Recommended next action
+
+Prepare the Claude Code implementation prompt for GC-DHI-04A.
+
+No GC-DHI-04B through GC-DHI-04F implementation is authorized.

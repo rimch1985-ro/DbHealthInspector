@@ -3,7 +3,7 @@
 **Backlog version:** 0.1  
 **Status:** Approved baseline  
 **Target:** v0.1.0  
-**Current next gate:** GC-DHI-02
+**Current next gate:** GC-DHI-04A
 
 ---
 
@@ -268,6 +268,7 @@ The orchestrator:
 ## PG-01 — Implement connection factory
 
 **Priority:** P0
+**Gate:** GC-DHI-04A
 
 ### Acceptance criteria
 
@@ -282,6 +283,7 @@ The orchestrator:
 ## PG-02 — Implement read-only inspection session
 
 **Priority:** P0
+**Gate:** GC-DHI-04B
 
 ### Acceptance criteria
 
@@ -298,6 +300,7 @@ The orchestrator:
 ## PG-03 — Implement server capability probe
 
 **Priority:** P0
+**Gate:** GC-DHI-04C
 
 ### Acceptance criteria
 
@@ -318,6 +321,7 @@ Missing optional statistics produce capability status, not silent omission.
 ## PG-04 — Implement table snapshot query
 
 **Priority:** P0
+**Gate:** GC-DHI-04D
 
 ### Acceptance criteria
 
@@ -340,6 +344,7 @@ System schemas and excluded relations are filtered correctly.
 ## PG-05 — Implement index snapshot query
 
 **Priority:** P0
+**Gate:** GC-DHI-04E
 
 ### Acceptance criteria
 
@@ -366,6 +371,7 @@ The query returns sufficient metadata for:
 ## PG-06 — Enforce SQL safety allowlist
 
 **Priority:** P0
+**Gate:** GC-DHI-04B and final verification in GC-DHI-04F
 
 ### Acceptance criteria
 
