@@ -1,12 +1,12 @@
 # PROJECT_STATE — DbHealth Inspector
 
-**Last updated:** 2026-07-30  
-**Authorization date:** 2026-07-30  
+**Last updated:** 2026-07-31  
+**Authorization date:** 2026-07-31  
 **Current phase:** PostgreSQL Metadata Adapter  
-**Current gate:** GC-DHI-04 defined  
-**Authorized next subgate:** GC-DHI-04A  
-**GC-DHI-04A status:** authorized for implementation after this definition is integrated  
-**GC-DHI-04B–04F:** unauthorized  
+**Current gate:** GC-DHI-04A integrated; awaiting final human closure  
+**PG-01:** completed  
+**GC-DHI-04B:** unauthorized and not started  
+**GC-DHI-04C–04F:** unauthorized  
 **GC-DHI-03B closure date:** 2026-07-30  
 **Target release:** v0.1.0-rc.1
 
@@ -17,38 +17,36 @@
 DbHealth Inspector has a locally and remotely validated .NET 10 repository at
 `https://github.com/rimch1985-ro/DbHealthInspector`.
 
-GC-DHI-03B was integrated through pull request
-`https://github.com/rimch1985-ro/DbHealthInspector/pull/2`. The implementation
-commit is `1b342433c170fb0cf6a1a4064f3db761b3d22fbb` and the merge commit is
-`9c3054a0220f88ab6ecc6d8248de8b8a9cdffbd5`.
+GC-DHI-04A — Connection Boundary and Secret Hygiene was integrated through
+pull request `https://github.com/rimch1985-ro/DbHealthInspector/pull/3`. The
+implementation commit is `8b838721c742b94e7ea0857019d49f5a8798ef79` and the
+merge commit is `923ca38be1698f568665f7eacb3d760530e4a1ee`.
 
-CORE-01 through CORE-05 are integrated. CORE-04 provides engine-neutral
-inspection orchestration and deterministic risk summaries without adding an
-engine adapter or executable diagnostic rules.
+PG-01 is completed. The PostgreSQL project now contains an internal connection
+boundary based on `NpgsqlDataSource`, strict connection-string normalization,
+allowlisted metadata, deterministic cancellation behavior, sanitized expected
+connection failures and explicit asynchronous ownership and disposal.
 
-GC-DHI-03B remains approved and closed.
+Pull-request run `30679883155` and master run `30679948734` passed on Ubuntu and
+Windows. Each job completed 479 tests with zero failures, zero skipped tests,
+zero build warnings and zero build errors.
 
-Pull-request run `30569512288`, master run `30569647753` and governance run
-`30570469692` passed on Ubuntu and Windows. Each job completed 365 tests with
-zero failures, zero skipped tests, zero build warnings and zero build errors.
-
-The master artifact `dbhealth-bootstrap-package` was independently audited. Its
-package SHA-256 is
-`243761AB6AC299DD7630499172A899346EC72A6C0748433A59056E76F61DEB89`;
-the artifact ZIP SHA-256 is
-`669E473FDEB750C2960030080E7EA1DB5FC81A313BB27CADB445FBCFB7C8B606`.
-The package references the merge commit, includes `DbHealthInspector.Core`, and
-passed isolated `dbhealth --help` and `dbhealth --version` validation.
+The master artifact `dbhealth-bootstrap-package` (artifact ID `8811851264`) was
+independently audited. The package has SHA-256
+`F640EDAB051AE54A864ECF5A55BCDE45CB0D15316FCF2CA4FB5E08FF91FD4428`;
+the artifact ZIP has SHA-256
+`CC48F43D23BBBDFBEB69BA163819268E12FAAB1BE67BEE1328B222302E5BD037`.
+The package references the exact merge commit, includes both
+`DbHealthInspector.Core.dll` and `DbHealthInspector.PostgreSql.dll`, and passed
+isolated `dbhealth --help` and `dbhealth --version` validation.
 
 The stable golden fingerprint remains
 `sha256:34d49fc53bf780ac48ff7c076662687fee038d95701dc3272ee2cb6620cbd444`.
-GC-DHI-04 defines the PostgreSQL Metadata Adapter as six sequential subgates.
-GC-DHI-04A is the only implementation subgate authorized next; GC-DHI-04B
-through GC-DHI-04F remain unauthorized.
 
-No PostgreSQL integration, SQL, executable DBH rules, CLI inspection behavior
-or JSON reporting has been implemented. Defining GC-DHI-04 does not start or
-implement the adapter.
+GC-DHI-04A is integrated and awaits final human closure. GC-DHI-04B is
+unauthorized and was not started. No SQL, read-only session, capability probe,
+snapshot mapping, executable diagnostic rule, CLI inspection behavior or JSON
+reporting was added.
 
 ---
 
@@ -360,8 +358,33 @@ Each subgate requires implementation by Claude Code, Codex review, correction
 when needed, human approval, PR integration, green CI, governance registration
 and closure before the next subgate may begin.
 
-## 15. Recommended next action
+## 15. GC-DHI-04A integration record
 
-Prepare the Claude Code implementation prompt for GC-DHI-04A.
+| Item | Verified value |
+|---|---|
+| Human authorization date | `2026-07-31` |
+| Backlog item | `PG-01` completed |
+| Pull request | `#3` — `https://github.com/rimch1985-ro/DbHealthInspector/pull/3` |
+| Implementation commit | `8b838721c742b94e7ea0857019d49f5a8798ef79` |
+| Merge commit | `923ca38be1698f568665f7eacb3d760530e4a1ee` |
+| Integrator | `rimch1985-ro` through Codex DevOps workflow |
+| Merge timestamp | `2026-08-01T02:24:40Z` |
+| Pull-request CI | `30679883155` — Ubuntu `91314638107`, Windows `91314638092` |
+| Master CI | `30679948734` — Ubuntu `91314823473`, Windows `91314823529` |
+| Tests per job | 479 passed, 0 failed, 0 skipped |
+| Build per job | 0 warnings, 0 errors |
+| Master artifact | `dbhealth-bootstrap-package`, ID `8811851264` |
+| Package | `DbHealthInspector.Tool.0.1.0-alpha.0.nupkg`, 886611 bytes |
+| Package SHA-256 | `F640EDAB051AE54A864ECF5A55BCDE45CB0D15316FCF2CA4FB5E08FF91FD4428` |
+| Artifact ZIP | 881858 bytes |
+| Artifact ZIP SHA-256 | `CC48F43D23BBBDFBEB69BA163819268E12FAAB1BE67BEE1328B222302E5BD037` |
+| Tool version | `0.1.0-alpha.0+923ca38be1698f568665f7eacb3d760530e4a1ee` |
+| Golden fingerprint | `sha256:34d49fc53bf780ac48ff7c076662687fee038d95701dc3272ee2cb6620cbd444` |
+| Functional exclusions | No SQL, session, capability probe, snapshot mapping, DBH rules, CLI inspection or JSON reporting |
+| Next subgate | GC-DHI-04B unauthorized and not started |
 
-No GC-DHI-04B through GC-DHI-04F implementation is authorized.
+## 16. Recommended next action
+
+Perform human review and final closure of GC-DHI-04A.
+
+GC-DHI-04B through GC-DHI-04F remain unauthorized.
