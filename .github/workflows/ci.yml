@@ -36,8 +36,23 @@ jobs:
       - name: Build
         run: dotnet build --configuration Release --no-restore
 
-      - name: Test
-        run: dotnet test --configuration Release --no-build
+      - name: Unit tests
+        run: dotnet test tests/DbHealthInspector.UnitTests --configuration Release --no-build
+
+      # Split so the server suite is never run twice and never reported as skipped.
+      - name: Integration tests (no server)
+        run: >-
+          dotnet test tests/DbHealthInspector.IntegrationTests
+          --configuration Release --no-build
+          --filter "Category!=PostgreSqlServer"
+
+      # Ubuntu is the only job with a Docker daemon, so it is the only job that runs the
+      # PostgreSQL 18 Testcontainers suite.
+      - name: Integration tests (PostgreSQL 18 server)
+        run: >-
+          dotnet test tests/DbHealthInspector.IntegrationTests
+          --configuration Release --no-build
+          --filter "Category=PostgreSqlServer"
 
       - name: Pack
         run: dotnet pack src/DbHealthInspector.Cli --configuration Release --no-build
@@ -68,8 +83,16 @@ jobs:
       - name: Build
         run: dotnet build --configuration Release --no-restore
 
-      - name: Test
-        run: dotnet test --configuration Release --no-build
+      - name: Unit tests
+        run: dotnet test tests/DbHealthInspector.UnitTests --configuration Release --no-build
+
+      # Windows has no Docker daemon for Linux containers, so it excludes the server trait
+      # rather than reporting those tests as skipped. Both jobs must report zero skipped tests.
+      - name: Integration tests (no server)
+        run: >-
+          dotnet test tests/DbHealthInspector.IntegrationTests
+          --configuration Release --no-build
+          --filter "Category!=PostgreSqlServer"
 
       - name: CLI smoke test
         run: dotnet run --project src/DbHealthInspector.Cli --configuration Release --no-build -- --help
