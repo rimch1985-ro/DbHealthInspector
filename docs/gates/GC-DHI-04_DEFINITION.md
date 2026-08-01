@@ -1,9 +1,9 @@
 # GC-DHI-04 — PostgreSQL Metadata Adapter
 
 **Definition date:** 2026-07-30  
-**Last updated:** 2026-07-31  
+**Last updated:** 2026-08-01  
 **Status:** Defined  
-**Verdict:** DEFINED — GC-DHI-04B AUTHORIZED NEXT
+**Verdict:** DEFINED — GC-DHI-04C AWAITING HUMAN IMPLEMENTATION AUTHORIZATION
 
 ## 1. Objective
 
@@ -111,7 +111,7 @@ Exit result: a safe, tested connection boundary without inspection behavior.
 
 **Backlog:** `PG-02`, `PG-06` foundation  
 **Definition:** `docs/gates/GC-DHI-04B_DEFINITION.md`  
-**Authorization:** defined; authorized next after this definition is integrated
+**Authorization:** approved and closed on 2026-08-01
 
 Scope:
 
@@ -143,7 +143,8 @@ implementation or diagnostic rules.
 ### GC-DHI-04C — Server Metadata and Capability Probe
 
 **Backlog:** `PG-03 — Implement server capability probe`  
-**Authorization:** unauthorized until GC-DHI-04B is approved and closed
+**Definition:** `docs/gates/GC-DHI-04C_DEFINITION.md`  
+**Authorization:** definition integrated; implementation not authorized
 
 Scope:
 
@@ -161,6 +162,10 @@ optional capability when safe continuation is possible. Required failures
 propagate. Raw PostgreSQL messages must not be stored.
 
 Exclusions: no table queries, index queries or DBH rules.
+
+The frozen future production inventory contains exactly seven statements:
+B001–B003 from GC-DHI-04B plus C001–C004 from the GC-DHI-04C definition. PG-03
+is defined but not implemented or completed.
 
 ### GC-DHI-04D — Table Snapshot Query and Mapping
 
@@ -440,9 +445,10 @@ Every subgate may start only when:
 - unresolved predecessor findings are absent;
 - no deferred decision required by that subgate remains ambiguous.
 
-GC-DHI-04B additionally requires this definition to be integrated. That
-integration is the authorization event for preparing its separate Claude Code
-implementation prompt. GC-DHI-04A must remain approved and closed.
+GC-DHI-04C additionally requires its own definition to be integrated and its
+documentation-only CI to pass. Definition integration does not authorize
+implementation: explicit human authorization and a separate Claude Code prompt
+are still required. GC-DHI-04A and GC-DHI-04B must remain approved and closed.
 
 ## 14. Gate exit criteria
 
@@ -477,14 +483,14 @@ Across GC-DHI-04:
 - no extra production project;
 - no tag, release or package publication.
 
-For this definition gate specifically:
+For the GC-DHI-04C definition update specifically:
 
 - no product-code or project modification;
 - no Npgsql usage change;
-- no SQL creation;
+- no executable SQL resource;
 - no tests or CI change;
 - no PostgreSQL or Docker startup;
-- no GC-DHI-04B implementation.
+- no GC-DHI-04C implementation.
 
 ## 16. Risks
 
@@ -517,24 +523,31 @@ before its integration:
 
 The exact adapter timeout defaults, read-only isolation level, session
 completion policy, initial SQL inventory and focused real-server strategy are
-resolved by `GC-DHI-04B_DEFINITION.md` and are no longer deferred. The
-remaining decisions do not block authorization of GC-DHI-04B.
+resolved by `GC-DHI-04B_DEFINITION.md` and are no longer deferred. C001–C004,
+numeric version normalization, the 15–18 support policy, capability policies,
+fixed generic reasons, `stats_reset`, the real permission-loss strategy and
+the typed operation boundary are resolved by `GC-DHI-04C_DEFINITION.md` and
+are no longer deferred. The remaining decisions do not authorize or start
+GC-DHI-04C implementation.
 
 ## 18. Authorization status
 
 | Subgate | Status |
 |---|---|
 | GC-DHI-04A — Connection Boundary and Secret Hygiene | Approved and closed |
-| GC-DHI-04B — Read-Only Session and SQL Safety Kernel | Defined; authorized next after this definition is integrated |
-| GC-DHI-04C — Server Metadata and Capability Probe | Unauthorized |
+| GC-DHI-04B — Read-Only Session and SQL Safety Kernel | Approved and closed |
+| GC-DHI-04C — Server Metadata and Capability Probe | Defined; implementation awaiting human authorization |
 | GC-DHI-04D — Table Snapshot Query and Mapping | Unauthorized |
 | GC-DHI-04E — Index Snapshot Query and Mapping | Unauthorized |
 | GC-DHI-04F — Snapshot Provider Composition and PostgreSQL Verification | Unauthorized |
 
-No GC-DHI-04B implementation is started by this document. The next authorized
-action is to prepare the separate Claude Code implementation prompt for
-GC-DHI-04B. GC-DHI-04C through GC-DHI-04F remain unauthorized.
+No GC-DHI-04C implementation is started or authorized by this document. The
+only next authorized action is human review of the integrated GC-DHI-04C
+definition. GC-DHI-04D through GC-DHI-04F remain unauthorized, unimplemented
+and not started.
 
 ```text
-DEFINED — GC-DHI-04B IMPLEMENTATION AUTHORIZED NEXT
+GC-DHI-04C DEFINED — AWAITING HUMAN IMPLEMENTATION AUTHORIZATION
+Await human review of the integrated GC-DHI-04C definition.
+No GC-DHI-04C implementation is authorized.
 ```

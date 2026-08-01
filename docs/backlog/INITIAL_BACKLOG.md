@@ -3,7 +3,7 @@
 **Backlog version:** 0.1  
 **Status:** Approved baseline  
 **Target:** v0.1.0  
-**Current next gate:** GC-DHI-04B
+**Current next gate:** Human review of the GC-DHI-04C definition
 
 ---
 
@@ -306,22 +306,29 @@ The orchestrator:
 
 ## PG-03 — Implement server capability probe
 
-**Priority:** P0
-**Gate:** GC-DHI-04C
+**Priority:** P0  
+**Gate:** GC-DHI-04C  
+**Definition:** `docs/gates/GC-DHI-04C_DEFINITION.md`  
+**Status:** Defined; implementation awaiting human authorization
 
 ### Acceptance criteria
 
-The probe returns:
+The frozen future implementation:
 
-- PostgreSQL version.
-- Database name.
-- Current user.
-- Availability of catalog metadata.
-- Availability of required statistics.
-- Statistics reset timestamp when available.
-- Supported/unsupported version state.
+- executes C001–C004 only through the typed GC-DHI-04B operation boundary;
+- reads numeric `server_version_num`, database name and current user;
+- normalizes pre-10 and 10-or-newer versions numerically;
+- supports PostgreSQL majors 15–18 and represents other majors explicitly as
+  unsupported;
+- treats catalog metadata as required and usage statistics as optional;
+- reads a nullable UTC statistics-reset timestamp only when statistics access
+  is available;
+- emits exactly one state for `CatalogMetadata`, `UsageStatistics` and
+  `DataProfiling`, with data profiling disabled by policy; and
+- uses the fixed generic, non-sensitive reasons defined by the gate.
 
-Missing optional statistics produce capability status, not silent omission.
+The future production inventory is B001–B003 plus C001–C004, exactly seven
+statements. PG-03 is defined but is not implemented or completed.
 
 ---
 
