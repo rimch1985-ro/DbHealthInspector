@@ -18,6 +18,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\DbHealthInspector.Core\DbHealthInspector.Core.csproj" />
+    <ProjectReference Include="..\..\src\DbHealthInspector.PostgreSql\DbHealthInspector.PostgreSql.csproj" />
   </ItemGroup>
 
   <ItemGroup>
