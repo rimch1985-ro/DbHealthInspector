@@ -216,9 +216,30 @@ GC-DHI-04F were not started.
 ## 24. Verdict
 
 ```text
-READY FOR FINAL HUMAN CLOSURE
+APPROVED AND CLOSED
 ```
 
-GC-DHI-04A is integrated and validated locally, on the pull request, on master
-and through independent artifact inspection. Final closure remains a separate
-human action.
+GC-DHI-04A is integrated, validated and closed. GC-DHI-04B remains
+unauthorized, unimplemented and not started.
+
+## 25. Final human closure
+
+- Closure date: `2026-07-31`
+- Verdict: `APPROVED AND CLOSED`
+- Backlog item: `PG-01 â€” Completed`
+- Verified pull request: `#3`
+- Verified implementation commit:
+  `8b838721c742b94e7ea0857019d49f5a8798ef79`
+- Verified merge commit:
+  `923ca38be1698f568665f7eacb3d760530e4a1ee`
+- Verified governance commit before closure:
+  `6992896cc83a3e0b7fd06cfda46c920bf6d401c9`
+- Verified CI runs:
+  `30679883155`, `30679948734`, `30680235253`
+- Tests per job:
+  `479 passed, 0 failed, 0 skipped`
+- Build per job:
+  `0 warnings, 0 errors`
+- Open findings: none
+
+GC-DHI-04B remains unauthorized, unimplemented and not started.

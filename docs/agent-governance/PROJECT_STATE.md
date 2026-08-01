@@ -3,11 +3,12 @@
 **Last updated:** 2026-07-31  
 **Authorization date:** 2026-07-31  
 **Current phase:** PostgreSQL Metadata Adapter  
-**Current gate:** GC-DHI-04A integrated; awaiting final human closure  
+**Current gate:** GC-DHI-04A approved and closed  
 **PG-01:** completed  
-**GC-DHI-04B:** unauthorized and not started  
+**GC-DHI-04B:** awaiting separate human definition and authorization  
 **GC-DHI-04C–04F:** unauthorized  
 **GC-DHI-03B closure date:** 2026-07-30  
+**GC-DHI-04A closure date:** 2026-07-31  
 **Target release:** v0.1.0-rc.1
 
 ---
@@ -43,10 +44,11 @@ isolated `dbhealth --help` and `dbhealth --version` validation.
 The stable golden fingerprint remains
 `sha256:34d49fc53bf780ac48ff7c076662687fee038d95701dc3272ee2cb6620cbd444`.
 
-GC-DHI-04A is integrated and awaits final human closure. GC-DHI-04B is
-unauthorized and was not started. No SQL, read-only session, capability probe,
+GC-DHI-04A is approved and closed. GC-DHI-04B is unauthorized and was not
+started. No SQL, read-only session, capability probe, table/index query,
 snapshot mapping, executable diagnostic rule, CLI inspection behavior or JSON
-reporting was added.
+reporting was implemented. GC-DHI-04B has not been started and requires
+separate human authorization.
 
 ---
 
