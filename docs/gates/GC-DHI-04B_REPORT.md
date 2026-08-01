@@ -2,12 +2,14 @@
 
 **Gate:** GC-DHI-04B — Read-Only Session and SQL Safety Kernel  
 **Integration date:** 2026-08-01  
+**Closure date:** 2026-08-01  
 **Integrator:** Codex  
 **Repository:** `https://github.com/rimch1985-ro/DbHealthInspector`  
-**Verdict:** `READY FOR FINAL HUMAN CLOSURE`
+**Verdict:** `APPROVED AND CLOSED`
 
-This report records the authorized integration. It does not close GC-DHI-04B
-and does not authorize or start GC-DHI-04C.
+Sections 1–26 preserve the authorized integration evidence. Section 27 records
+the subsequent final human closure. This closure does not authorize or start
+GC-DHI-04C implementation.
 
 ## 1. Objective
 
@@ -430,8 +432,9 @@ GC-DHI-04C through GC-DHI-04F were not started.
 
 ## 25. Remaining deferred work
 
-GC-DHI-04B still requires a separate final human closure record. GC-DHI-04C
-remains unauthorized.
+At the integration stage, GC-DHI-04B still required a separate final human
+closure record. Section 27 now records that decision. GC-DHI-04C remains
+unauthorized for implementation.
 
 Future separately authorized gates retain capability probing, metadata
 inventory and mapping, CLI/report behavior, diagnostic rules, final minimum
@@ -440,7 +443,10 @@ backlog completion. Full PG-06 completion remains assigned to GC-DHI-04F.
 
 No tag, release or NuGet publication is part of this gate.
 
-## 26. Final integration verdict
+## 26. Historical integration verdict
+
+The integration-stage verdict, before the human closure recorded in section
+27, was:
 
 ```text
 READY FOR FINAL HUMAN CLOSURE
@@ -448,4 +454,44 @@ READY FOR FINAL HUMAN CLOSURE
 
 The reviewed candidate was integrated without scope deviation through PR `#4`,
 both PR and master CI passed, and the master artifact was independently audited
-and installed in isolation. GC-DHI-04B is integrated but not finally closed.
+and installed in isolation. At that integration stage GC-DHI-04B was not yet
+finally closed; the later decision is recorded below.
+
+## 27. Final human closure
+
+The human project owner reviewed the complete GC-DHI-04B integration record,
+including the reviewed implementation, correction cycles, pull request,
+multiplatform CI, PostgreSQL 18 safety contracts, master artifact, package
+audit and governance record.
+
+Final decision:
+
+```text
+APPROVED AND CLOSED
+```
+
+Closure date: `2026-08-01`.
+
+Closure traceability:
+
+| Item | Verified value |
+|---|---|
+| Implementation commit | `fcefe276a78c0945defcfd4062998a441cf2f44c` |
+| Merge commit | `c67c62fbd262c4159cb8fe3a381e2ad299b8f9ce` |
+| Governance integration commit | `8c29dd9396aae210f3d9503dba2889398eb06b4d` |
+| Pull request | `#4` |
+| Pull-request CI | `30717182433` |
+| Master CI | `30717262246` |
+| Governance CI | `30717628722` — Ubuntu `91415872807`, Windows `91415872820` |
+
+Backlog state:
+
+```text
+PG-02 — completed
+PG-06 foundation — completed
+PG-06 full completion — remains assigned to GC-DHI-04F
+```
+
+GC-DHI-04A and GC-DHI-04B are approved and closed. GC-DHI-04C was not defined
+for implementation, implemented or started by this closure. GC-DHI-04D through
+GC-DHI-04F remain unauthorized, unimplemented and not started.
