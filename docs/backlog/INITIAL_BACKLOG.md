@@ -3,7 +3,7 @@
 **Backlog version:** 0.1  
 **Status:** Approved baseline  
 **Target:** v0.1.0  
-**Current next gate:** GC-DHI-04A
+**Current next gate:** GC-DHI-04B
 
 ---
 
@@ -284,6 +284,13 @@ The orchestrator:
 
 **Priority:** P0
 **Gate:** GC-DHI-04B
+**Definition:** `docs/gates/GC-DHI-04B_DEFINITION.md`
+
+### Frozen session defaults
+
+- Statement timeout: 30 seconds.
+- Lock timeout: 5 seconds.
+- Idle-in-transaction timeout: 60 seconds.
 
 ### Acceptance criteria
 
@@ -372,6 +379,11 @@ The query returns sufficient metadata for:
 
 **Priority:** P0
 **Gate:** GC-DHI-04B and final verification in GC-DHI-04F
+**Definition:** `docs/gates/GC-DHI-04B_DEFINITION.md`
+
+GC-DHI-04B is scoped to the SQL-inventory and fail-closed validator foundation.
+PG-06 is completed only after the composed inventory and safety contracts are
+verified in GC-DHI-04F.
 
 ### Acceptance criteria
 

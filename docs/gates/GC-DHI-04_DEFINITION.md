@@ -1,8 +1,9 @@
 # GC-DHI-04 — PostgreSQL Metadata Adapter
 
 **Definition date:** 2026-07-30  
+**Last updated:** 2026-07-31  
 **Status:** Defined  
-**Verdict:** DEFINED — GC-DHI-04A AUTHORIZED NEXT
+**Verdict:** DEFINED — GC-DHI-04B AUTHORIZED NEXT
 
 ## 1. Objective
 
@@ -80,7 +81,7 @@ argument resolution and presentation remain outside this gate.
 ### GC-DHI-04A — Connection Boundary and Secret Hygiene
 
 **Backlog:** `PG-01 — Implement connection factory`  
-**Authorization:** authorized next after this definition is integrated
+**Authorization:** approved and closed on 2026-07-31
 
 Scope:
 
@@ -109,7 +110,8 @@ Exit result: a safe, tested connection boundary without inspection behavior.
 ### GC-DHI-04B — Read-Only Session and SQL Safety Kernel
 
 **Backlog:** `PG-02`, `PG-06` foundation  
-**Authorization:** unauthorized until GC-DHI-04A is approved and closed
+**Definition:** `docs/gates/GC-DHI-04B_DEFINITION.md`  
+**Authorization:** defined; authorized next after this definition is integrated
 
 Scope:
 
@@ -126,9 +128,14 @@ Scope:
 - prove against a persistent control table that writes fail;
 - prove no change persists after success, failure or cancellation.
 
-Exact default timeout values remain deferred. This subgate defines validated
-options, not CLI defaults. The write-rejection fixture must not rely on a
-temporary table.
+The adapter defaults are frozen at 30 seconds for statement timeout, 5 seconds
+for lock timeout and 60 seconds for idle-in-transaction timeout. They are
+internal adapter defaults, not final CLI decisions. GC-DHI-04B uses
+`RepeatableRead`, sets the transaction read-only before every other statement,
+is non-deferrable and completes only through rollback. Its initial production
+inventory contains exactly `SetTransactionReadOnly`, `ApplyLocalTimeouts` and
+`VerifySessionState`. The write-rejection fixture must not rely on a temporary
+table.
 
 Exclusions: no table or index metadata queries, snapshot mapping, capability
 implementation or diagnostic rules.
@@ -270,16 +277,19 @@ Production SQL must satisfy all of these rules:
   transaction-initialization resources.
 - SQL resources are classified and verified by safety tests.
 
-Allowed command classes:
+Allowed forms for GC-DHI-04B:
 
 ```text
-SELECT
-SHOW
-SET LOCAL
-BEGIN / transaction API
-COMMIT
-ROLLBACK
+BEGIN through the Npgsql transaction API
+SET TRANSACTION READ ONLY
+SELECT pg_catalog.set_config(...) with positional parameters and is_local=true
+Static SELECT
+ROLLBACK / asynchronous transaction disposal
 ```
+
+`SHOW` and `SET LOCAL` remain potentially authorizable for later subgates but
+are not present in the initial GC-DHI-04B inventory. `COMMIT` is prohibited on
+the inspection path.
 
 Prohibited command classes:
 
@@ -412,8 +422,9 @@ PostgreSQL 15 is the oldest supported version and PostgreSQL 18 is the newest.
 GC-DHI-04F must execute the complete adapter integration and safety suite
 against both versions.
 
-Earlier subgates may use a focused real-server test where required, without
-expanding permanent CI prematurely. The permanent 15/18 CI shape remains a
+GC-DHI-04B uses focused PostgreSQL 18 Testcontainers verification on Ubuntu,
+with an exact image tag and digest recorded by the implementation. It does not
+introduce the permanent version matrix. The permanent 15/18 CI shape remains a
 deferred decision until real query cost and reliability are known.
 
 Any version-specific query or mapping branch must have explicit coverage.
@@ -429,9 +440,9 @@ Every subgate may start only when:
 - unresolved predecessor findings are absent;
 - no deferred decision required by that subgate remains ambiguous.
 
-GC-DHI-04A additionally requires this definition to be integrated. That
-integration is the authorization event for preparing its Claude Code
-implementation prompt.
+GC-DHI-04B additionally requires this definition to be integrated. That
+integration is the authorization event for preparing its separate Claude Code
+implementation prompt. GC-DHI-04A must remain approved and closed.
 
 ## 14. Gate exit criteria
 
@@ -473,7 +484,7 @@ For this definition gate specifically:
 - no SQL creation;
 - no tests or CI change;
 - no PostgreSQL or Docker startup;
-- no GC-DHI-04A implementation.
+- no GC-DHI-04B implementation.
 
 ## 16. Risks
 
@@ -495,7 +506,6 @@ For this definition gate specifically:
 The following remain pending and must be resolved in the relevant subgate
 before its integration:
 
-- exact default values for statement, lock and idle transaction timeouts;
 - final CLI error format;
 - precedence of connection sources;
 - console rendering;
@@ -505,22 +515,26 @@ before its integration:
 - exact minimum role permissions after real queries are validated;
 - final hostname policy for reports.
 
-These decisions do not block this definition or authorization of GC-DHI-04A.
+The exact adapter timeout defaults, read-only isolation level, session
+completion policy, initial SQL inventory and focused real-server strategy are
+resolved by `GC-DHI-04B_DEFINITION.md` and are no longer deferred. The
+remaining decisions do not block authorization of GC-DHI-04B.
 
 ## 18. Authorization status
 
 | Subgate | Status |
 |---|---|
-| GC-DHI-04A — Connection Boundary and Secret Hygiene | Authorized next after this definition is integrated |
-| GC-DHI-04B — Read-Only Session and SQL Safety Kernel | Unauthorized |
+| GC-DHI-04A — Connection Boundary and Secret Hygiene | Approved and closed |
+| GC-DHI-04B — Read-Only Session and SQL Safety Kernel | Defined; authorized next after this definition is integrated |
 | GC-DHI-04C — Server Metadata and Capability Probe | Unauthorized |
 | GC-DHI-04D — Table Snapshot Query and Mapping | Unauthorized |
 | GC-DHI-04E — Index Snapshot Query and Mapping | Unauthorized |
 | GC-DHI-04F — Snapshot Provider Composition and PostgreSQL Verification | Unauthorized |
 
-No adapter implementation is started by this document. The next authorized
-action is to prepare the Claude Code implementation prompt for GC-DHI-04A.
+No GC-DHI-04B implementation is started by this document. The next authorized
+action is to prepare the separate Claude Code implementation prompt for
+GC-DHI-04B. GC-DHI-04C through GC-DHI-04F remain unauthorized.
 
 ```text
-DEFINED — GC-DHI-04A AUTHORIZED NEXT
+DEFINED — GC-DHI-04B IMPLEMENTATION AUTHORIZED NEXT
 ```

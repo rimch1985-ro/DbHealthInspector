@@ -3,9 +3,10 @@
 **Last updated:** 2026-07-31  
 **Authorization date:** 2026-07-31  
 **Current phase:** PostgreSQL Metadata Adapter  
-**Current gate:** GC-DHI-04A approved and closed  
+**Current gate:** GC-DHI-04B defined  
+**Authorized next action:** prepare Claude Code implementation prompt for GC-DHI-04B  
 **PG-01:** completed  
-**GC-DHI-04B:** awaiting separate human definition and authorization  
+**GC-DHI-04B:** authorized for implementation after definition integration  
 **GC-DHI-04C–04F:** unauthorized  
 **GC-DHI-03B closure date:** 2026-07-30  
 **GC-DHI-04A closure date:** 2026-07-31  
@@ -44,11 +45,17 @@ isolated `dbhealth --help` and `dbhealth --version` validation.
 The stable golden fingerprint remains
 `sha256:34d49fc53bf780ac48ff7c076662687fee038d95701dc3272ee2cb6620cbd444`.
 
-GC-DHI-04A is approved and closed. GC-DHI-04B is unauthorized and was not
-started. No SQL, read-only session, capability probe, table/index query,
-snapshot mapping, executable diagnostic rule, CLI inspection behavior or JSON
-reporting was implemented. GC-DHI-04B has not been started and requires
-separate human authorization.
+GC-DHI-04A is approved and closed. GC-DHI-04B — Read-Only Session and SQL
+Safety Kernel is defined by `docs/gates/GC-DHI-04B_DEFINITION.md` and is the
+only subgate authorized for a separately prompted Claude Code implementation
+after this definition is integrated. It has not been implemented or started.
+GC-DHI-04C through GC-DHI-04F remain unauthorized.
+
+The GC-DHI-04B definition freezes `RepeatableRead`, read-only, non-deferrable,
+rollback-only session semantics; transaction-local timeouts of 30 seconds, 5
+seconds and 60 seconds; exactly three initial SQL statements; a fail-closed SQL
+safety validator; and focused PostgreSQL 18 server verification. No product
+code, SQL, tests, dependencies or CI behavior is added by the definition gate.
 
 ---
 
@@ -179,20 +186,24 @@ Codex preserves capacity by avoiding duplicate feature implementation and focusi
 - Human closure of GC-DHI-03B was approved on 2026-07-30 and recorded in
   closure commit `55c538c88360a0a16e58203f949499ae6db962e9`.
 - GC-DHI-04 was defined as six sequential PostgreSQL Metadata Adapter
-  subgates, with GC-DHI-04A authorized as the only next implementation
-  subgate.
+  subgates.
+- GC-DHI-04A completed PG-01 and was approved and closed on 2026-07-31.
+- GC-DHI-04B was defined as the read-only session and SQL safety kernel gate,
+  covering PG-02 and the foundation of PG-06 without implementing product
+  behavior.
 
 ---
 
 ## 7. Work authorized next
 
-Prepare the Claude Code implementation prompt for GC-DHI-04A — Connection
-Boundary and Secret Hygiene.
+Prepare the Claude Code implementation prompt for GC-DHI-04B — Read-Only
+Session and SQL Safety Kernel.
 
-After this definition is integrated, GC-DHI-04A is authorized for
-implementation. It must complete its implementation, Codex review, corrections,
-human approval, PR integration, green CI, governance record and closure before
-GC-DHI-04B can be considered.
+After this definition is integrated, GC-DHI-04B is the only subgate authorized
+for implementation. Its implementation still requires a separate Claude Code
+prompt and must complete Codex review, corrections, human approval, PR
+integration, green CI, artifact audit, governance registration and closure
+before GC-DHI-04C can be considered.
 
 ---
 
@@ -200,7 +211,9 @@ GC-DHI-04B can be considered.
 
 The following are not yet authorized:
 
-- Implement GC-DHI-04B through GC-DHI-04F.
+- Implement GC-DHI-04C through GC-DHI-04F.
+- Implement GC-DHI-04B without a separate Claude Code prompt referencing its
+  canonical definition.
 - Skip or combine GC-DHI-04 subgates.
 - Implement PostgreSQL catalog queries before their authorized subgate.
 - Implement production diagnostic rules.
@@ -261,7 +274,6 @@ Resolved during GC-DHI-03B:
 
 Pending product decisions:
 
-- Exact timeout defaults after validation.
 - Reproducible invalid-index test strategy.
 - Console rendering format.
 - Final CLI error format.
@@ -349,12 +361,16 @@ GC-DHI-02 will be approved when:
 |---|---|
 | Phase | PostgreSQL Metadata Adapter |
 | Sequence | `GC-DHI-04A → GC-DHI-04B → GC-DHI-04C → GC-DHI-04D → GC-DHI-04E → GC-DHI-04F` |
-| Authorized next | `GC-DHI-04A — Connection Boundary and Secret Hygiene` |
-| Unauthorized | `GC-DHI-04B` through `GC-DHI-04F` |
+| Closed | `GC-DHI-04A — Connection Boundary and Secret Hygiene` |
+| Defined and authorized next after integration | `GC-DHI-04B — Read-Only Session and SQL Safety Kernel` |
+| Unauthorized | `GC-DHI-04C` through `GC-DHI-04F` |
 | Architecture | `PostgreSql → Core`; Core has no infrastructure dependency |
 | Safety | Static inventoried SQL, parameterized external values, explicit read-only transaction |
-| Supported versions | PostgreSQL 15–18; mandatory 15/18 verification in GC-DHI-04F |
-| Product implementation | Not started by the definition gate |
+| GC-DHI-04B transaction | `RepeatableRead`, read-only, non-deferrable, rollback only |
+| GC-DHI-04B timeouts | Statement 30 s; lock 5 s; idle-in-transaction 60 s |
+| GC-DHI-04B inventory | Exactly B001, B002 and B003 |
+| Supported versions | PostgreSQL 18 focused in 04B; mandatory 15/18 verification in GC-DHI-04F |
+| Product implementation | GC-DHI-04B not started by the definition gate |
 
 Each subgate requires implementation by Claude Code, Codex review, correction
 when needed, human approval, PR integration, green CI, governance registration
@@ -383,10 +399,10 @@ and closure before the next subgate may begin.
 | Tool version | `0.1.0-alpha.0+923ca38be1698f568665f7eacb3d760530e4a1ee` |
 | Golden fingerprint | `sha256:34d49fc53bf780ac48ff7c076662687fee038d95701dc3272ee2cb6620cbd444` |
 | Functional exclusions | No SQL, session, capability probe, snapshot mapping, DBH rules, CLI inspection or JSON reporting |
-| Next subgate | GC-DHI-04B unauthorized and not started |
+| Next subgate | GC-DHI-04B defined and authorized after definition integration; not started |
 
 ## 16. Recommended next action
 
-Perform human review and final closure of GC-DHI-04A.
+Prepare the Claude Code implementation prompt for GC-DHI-04B.
 
-GC-DHI-04B through GC-DHI-04F remain unauthorized.
+GC-DHI-04C through GC-DHI-04F remain unauthorized.
