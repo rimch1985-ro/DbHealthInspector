@@ -226,7 +226,7 @@ unauthorized, unimplemented and not started.
 
 - Closure date: `2026-07-31`
 - Verdict: `APPROVED AND CLOSED`
-- Backlog item: `PG-01 â€” Completed`
+- Backlog item: `PG-01 — Completed`
 - Verified pull request: `#3`
 - Verified implementation commit:
   `8b838721c742b94e7ea0857019d49f5a8798ef79`
