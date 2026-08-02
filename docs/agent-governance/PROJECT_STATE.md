@@ -2,18 +2,20 @@
 
 **Last updated:** 2026-08-01  
 **GC-DHI-04C integration authorization date:** 2026-08-01  
+**GC-DHI-04C closure date:** 2026-08-01  
 **GC-DHI-04B closure date:** 2026-08-01  
 **Current phase:** PostgreSQL Metadata Adapter  
-**Current gate:** GC-DHI-04C integrated — ready for final human closure  
-**Authorized next action:** final human review and closure of GC-DHI-04C  
+**Current gate:** GC-DHI-04C approved and closed  
+**Authorized next action:** define the technical scope and authorization criteria for GC-DHI-04D  
 **PG-01:** completed  
 **PG-02:** completed  
-**PG-03:** implemented and integrated  
+**PG-03:** completed  
 **PG-06 foundation:** completed in GC-DHI-04B  
 **PG-06 full completion:** remains assigned to GC-DHI-04F  
 **GC-DHI-04B:** approved and closed  
-**GC-DHI-04C:** integrated; not yet finally closed  
-**GC-DHI-04D–04F:** unauthorized, unimplemented and not started  
+**GC-DHI-04C:** approved and closed  
+**GC-DHI-04D:** definition may be prepared; implementation remains unauthorized  
+**GC-DHI-04E–04F:** unauthorized, unimplemented and not started  
 **GC-DHI-03B closure date:** 2026-07-30  
 **GC-DHI-04A closure date:** 2026-07-31  
 **Target release:** v0.1.0-rc.1
@@ -74,10 +76,12 @@ test markers, credentials, connection strings or test results. No new public
 PostgreSQL API, table/index query, snapshot provider, diagnostic rule, CLI
 inspection behavior or JSON reporting was added.
 
-GC-DHI-04C is integrated but is not finally closed. The only next action is
-final human review and closure of GC-DHI-04C. GC-DHI-04D through GC-DHI-04F
-remain unauthorized, undefined for implementation, unimplemented and not
-started. No tag, release or NuGet publication was performed.
+The human project owner approved and closed GC-DHI-04C on 2026-08-01. PG-03 is
+completed. The only next action is definition of the technical scope and
+authorization criteria for GC-DHI-04D; implementation remains unauthorized and
+requires an integrated definition, human review and a separate implementation
+prompt. GC-DHI-04E through GC-DHI-04F remain unauthorized, unimplemented and
+not started. No tag, release or NuGet publication was performed.
 
 ---
 
@@ -224,15 +228,19 @@ Codex preserves capacity by avoiding duplicate feature implementation and focusi
 - GC-DHI-04C implemented and integrated PG-03 through pull request `#5` with
   an explicit merge commit, green Ubuntu/Windows CI and an independently
   audited merge artifact and isolated tool installation.
+- The human project owner approved and closed GC-DHI-04C on 2026-08-01 after
+  reviewing its complete definition, implementation, correction, CI, artifact,
+  package, installation and governance record. PG-03 is completed.
 
 ---
 
 ## 7. Work authorized next
 
-Final human review and closure of GC-DHI-04C.
+Define the technical scope and authorization criteria for GC-DHI-04D.
 
-GC-DHI-04C is integrated but not yet finally closed. Implementation work on
-GC-DHI-04D is not authorized.
+Only the GC-DHI-04D technical definition may be prepared. Implementation
+requires the definition to be integrated, reviewed by the human owner and
+followed by a separate implementation authorization and prompt.
 
 ---
 
@@ -240,7 +248,8 @@ GC-DHI-04D is not authorized.
 
 The following are not yet authorized:
 
-- Implement GC-DHI-04D through GC-DHI-04F.
+- Implement GC-DHI-04D.
+- Define or implement GC-DHI-04E through GC-DHI-04F.
 - Skip or combine GC-DHI-04 subgates.
 - Implement PostgreSQL catalog queries before their authorized subgate.
 - Implement production diagnostic rules.
@@ -388,8 +397,8 @@ GC-DHI-02 will be approved when:
 |---|---|
 | Phase | PostgreSQL Metadata Adapter |
 | Sequence | `GC-DHI-04A → GC-DHI-04B → GC-DHI-04C → GC-DHI-04D → GC-DHI-04E → GC-DHI-04F` |
-| Closed | `GC-DHI-04A — Connection Boundary and Secret Hygiene`; `GC-DHI-04B — Read-Only Session and SQL Safety Kernel` |
-| Integrated; awaiting final human closure | `GC-DHI-04C — Server Metadata and Capability Probe` |
+| Closed | `GC-DHI-04A — Connection Boundary and Secret Hygiene`; `GC-DHI-04B — Read-Only Session and SQL Safety Kernel`; `GC-DHI-04C — Server Metadata and Capability Probe` |
+| Definition authorized | `GC-DHI-04D`; implementation remains unauthorized |
 | Unauthorized for implementation | `GC-DHI-04D` through `GC-DHI-04F` |
 | Architecture | `PostgreSql → Core`; Core has no infrastructure dependency |
 | Safety | Static inventoried SQL, parameterized external values, explicit read-only transaction |
@@ -398,13 +407,13 @@ GC-DHI-02 will be approved when:
 | GC-DHI-04B inventory | Exactly B001, B002 and B003 |
 | GC-DHI-04C inventory | Exactly B001–B003 and C001–C004; seven statements total |
 | Supported versions | PostgreSQL 18 focused in 04B; mandatory 15/18 verification in GC-DHI-04F |
-| Product implementation | GC-DHI-04C integrated; GC-DHI-04D through GC-DHI-04F not started |
+| Product implementation | GC-DHI-04C approved and closed; GC-DHI-04D through GC-DHI-04F not started |
 
 Each subgate requires implementation by Claude Code, Codex review, correction
 when needed, human approval, PR integration, green CI, governance registration
 and closure before the next subgate may begin. GC-DHI-04A and GC-DHI-04B are
-approved and closed. GC-DHI-04C is integrated and awaits final human closure;
-GC-DHI-04D remains unauthorized.
+approved and closed. GC-DHI-04C is also approved and closed. Only the technical
+definition of GC-DHI-04D is authorized; implementation remains unauthorized.
 
 ## 15. GC-DHI-04A integration record
 
@@ -470,7 +479,7 @@ GC-DHI-04D remains unauthorized.
 | Item | Defined value |
 |---|---|
 | Definition date | `2026-08-01` |
-| Backlog item | `PG-03` implemented and integrated |
+| Backlog item | `PG-03` completed |
 | Definition | `docs/gates/GC-DHI-04C_DEFINITION.md` |
 | Predecessor | GC-DHI-04B approved and closed |
 | Result | Internal immutable server-probe result mapped to existing Core contracts |
@@ -479,8 +488,9 @@ GC-DHI-04D remains unauthorized.
 | Productive inventory | B001–B003 plus C001–C004; exactly seven statements |
 | Capabilities | Required catalog metadata; optional usage statistics; data profiling disabled |
 | PostgreSQL fixture | `postgres:18.4` at the existing immutable digest |
-| Implementation | Integrated through pull request `#5`; not yet finally closed |
-| Verdict | `READY FOR FINAL HUMAN CLOSURE` |
+| Implementation | Integrated through pull request `#5` and human-approved |
+| Closure date | `2026-08-01` |
+| Verdict | `APPROVED AND CLOSED` |
 
 ## 18. GC-DHI-04C integration record
 
@@ -496,6 +506,8 @@ GC-DHI-04D remains unauthorized.
 | Merge timestamp | `2026-08-02T04:14:10Z` |
 | Pull-request CI | `30731960075` — Ubuntu `91453798149`, Windows `91453798196` |
 | Master CI | `30732019651` — Ubuntu `91453966554`, Windows `91453966613` |
+| Governance integration commit | `73e9a91108d4044963f108b2cb7610e8276c1acc` |
+| Governance CI | `30732349125` — Ubuntu `91454852256`, Windows `91454852236` |
 | Ubuntu tests | 1286 passed, 0 failed, 0 skipped |
 | Windows tests | 1256 passed, 0 failed, 0 skipped |
 | Build per platform | 0 warnings, 0 errors |
@@ -514,11 +526,14 @@ GC-DHI-04D remains unauthorized.
 | Isolated installation | Help remained bootstrap-only; version `0.1.0-alpha.0+6d6772cf59c711ca522902b6135223e0ca00c6a1` |
 | Golden fingerprint | `sha256:34d49fc53bf780ac48ff7c076662687fee038d95701dc3272ee2cb6620cbd444` |
 | Publication state | No tag, release or NuGet publication |
-| Gate state | `READY FOR FINAL HUMAN CLOSURE`; not finally closed |
+| Closure date | `2026-08-01` |
+| Gate state | `APPROVED AND CLOSED` |
 
 ## 19. Recommended next action
 
-Await final human review and closure of GC-DHI-04C.
+Define the technical scope and authorization criteria for GC-DHI-04D.
 
-GC-DHI-04D remains unauthorized. GC-DHI-04D through GC-DHI-04F remain
-undefined for implementation, unimplemented and not started.
+No GC-DHI-04D implementation is authorized by this closure. The definition
+must be integrated and reviewed by the human owner before a separate
+implementation authorization and prompt. GC-DHI-04E through GC-DHI-04F remain
+unauthorized, unimplemented and not started.

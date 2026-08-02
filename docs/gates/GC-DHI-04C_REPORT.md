@@ -3,8 +3,9 @@
 **Gate:** GC-DHI-04C — Server Metadata and Capability Probe  
 **Backlog item:** PG-03  
 **Integration authorization date:** 2026-08-01  
+**Closure date:** 2026-08-01  
 **Repository:** `rimch1985-ro/DbHealthInspector`  
-**Verdict:** `READY FOR FINAL HUMAN CLOSURE`
+**Verdict:** `APPROVED AND CLOSED`
 
 ---
 
@@ -16,8 +17,8 @@ isolated tool installation, without starting GC-DHI-04D.
 
 ## 2. Backlog coverage
 
-`PG-03 — Implement server capability probe` is implemented and integrated.
-GC-DHI-04C is not yet finally closed.
+`PG-03 — Implement server capability probe` is completed. GC-DHI-04C is
+approved and closed by the final human decision recorded in section 35.
 
 ## 3. Definition and authorization
 
@@ -237,6 +238,12 @@ Run `30732019651` validated the exact merge commit:
 
 Ubuntu packed and uploaded the artifact; Windows passed CLI smoke.
 
+Governance integration commit
+`73e9a91108d4044963f108b2cb7610e8276c1acc` was validated by run
+`30732349125`: Ubuntu job `91454852256` passed 1286 tests and Windows job
+`91454852236` passed 1256 tests, with zero failures, zero skipped tests, zero
+build warnings and zero build errors.
+
 ## 29. Artifact audit
 
 - Name: `dbhealth-bootstrap-package`
@@ -290,16 +297,37 @@ release or NuGet publication was performed.
 
 ## 33. Deferred work
 
-GC-DHI-04D through GC-DHI-04F remain unauthorized, undefined for
-implementation, unimplemented and not started. GC-DHI-04D requires a separate
-human authorization after final closure of GC-DHI-04C.
+The technical definition and authorization criteria for GC-DHI-04D may now be
+prepared. GC-DHI-04D implementation remains unauthorized and requires an
+integrated definition, human review and a separate implementation prompt.
+GC-DHI-04E through GC-DHI-04F remain unauthorized, unimplemented and not
+started.
 
-## 34. Integration verdict
+## 34. Integration verdict before closure
 
-PG-03 implemented and integrated.  
-GC-DHI-04C not yet finally closed.  
-GC-DHI-04D remains unauthorized.
+At completion of remote integration, GC-DHI-04C had satisfied every technical
+entry condition for final human review but had not yet received the closure
+decision. That historical integration status did not close the gate. The final
+decision is recorded in section 35.
+
+## 35. Final human closure
+
+The human project owner reviewed the complete GC-DHI-04C record, including the
+normative definition, implementation and correction cycles, frozen SQL
+contracts, real PostgreSQL capability observations, pull request, multiplatform
+CI, merge artifact, package audit, isolated installation and governance record.
+
+Final decision:
 
 ```text
-READY FOR FINAL HUMAN CLOSURE
+APPROVED AND CLOSED
 ```
+
+```text
+PG-03 — completed
+GC-DHI-04C — approved and closed
+GC-DHI-04D — not authorized for implementation
+```
+
+GC-DHI-04D was not defined for implementation, implemented or started by this
+closure.
