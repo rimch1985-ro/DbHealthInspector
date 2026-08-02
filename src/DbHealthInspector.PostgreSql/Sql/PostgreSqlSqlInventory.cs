@@ -8,16 +8,28 @@ namespace DbHealthInspector.PostgreSql.Sql;
 /// </summary>
 /// <remarks>
 /// <para>
-/// GC-DHI-04B freezes the productive inventory at exactly three statements: B001
+/// GC-DHI-04C freezes the productive inventory at exactly seven statements, in this order: the
+/// three session-initialization statements — B001
 /// (<see cref="PostgreSqlSqlStatementId.SetTransactionReadOnly"/>), B002
 /// (<see cref="PostgreSqlSqlStatementId.ApplyLocalTimeouts"/>) and B003
-/// (<see cref="PostgreSqlSqlStatementId.VerifySessionState"/>), in that order.
+/// (<see cref="PostgreSqlSqlStatementId.VerifySessionState"/>) — followed by the four
+/// capability-probe statements: C001
+/// (<see cref="PostgreSqlSqlStatementId.ReadServerIdentity"/>), C002
+/// (<see cref="PostgreSqlSqlStatementId.CheckCatalogMetadataAccess"/>), C003
+/// (<see cref="PostgreSqlSqlStatementId.CheckUsageStatisticsAccess"/>) and C004
+/// (<see cref="PostgreSqlSqlStatementId.ReadStatisticsReset"/>).
+/// </para>
+/// <para>
+/// B001–B003 are reserved to the session runner and are unreachable from an authorized operation;
+/// C001–C004 are the typed operations the capability probe may run. An eighth productive statement
+/// requires a later authorised gate.
 /// </para>
 /// <para>
 /// There is no lookup by SQL text, no runtime registration, no external SQL file, no assembly
-/// reflection scan and no mutable collection reachable from outside. Every definition passes
-/// <see cref="PostgreSqlSqlSafetyValidator"/> during construction, so an inventory instance that
-/// exists at all is one whose every statement has already been proven safe — the executor
+/// reflection scan and no mutable collection reachable from outside. Every definition passes both
+/// layers of <see cref="PostgreSqlSqlSafetyValidator"/> during construction — the lexical scan and
+/// the frozen statement contract — so an inventory instance that exists at all is one whose every
+/// statement has already been proven to be one of the seven canonical definitions. The executor
 /// therefore never re-parses SQL on the hot path.
 /// </para>
 /// </remarks>
@@ -76,6 +88,101 @@ internal sealed class PostgreSqlSqlInventory
         """;
 
     /// <summary>
+    /// C001 — reads the machine-readable server version plus the database name and current user.
+    /// It reads the server's own identity only: no catalog row and no business row.
+    /// </summary>
+    internal const string ReadServerIdentitySql = """
+        SELECT
+            pg_catalog.current_setting(
+                'server_version_num')::integer
+                AS server_version_number,
+            pg_catalog.current_database()::text
+                AS database_name,
+            current_user::text
+                AS current_user
+        """;
+
+    /// <summary>
+    /// C002 — the required catalog-metadata allowlist. Every relation named here is one a later
+    /// gate needs; the list is a frozen baseline, and anything GC-DHI-04D or GC-DHI-04E needs
+    /// beyond it must be added explicitly in its own gate. It asks PostgreSQL about privileges
+    /// only and reads no catalog row.
+    /// </summary>
+    internal const string CheckCatalogMetadataAccessSql = """
+        SELECT
+            pg_catalog.has_schema_privilege(
+                current_user,
+                'pg_catalog',
+                'USAGE')
+            AND pg_catalog.has_table_privilege(
+                current_user,
+                'pg_catalog.pg_namespace',
+                'SELECT')
+            AND pg_catalog.has_table_privilege(
+                current_user,
+                'pg_catalog.pg_class',
+                'SELECT')
+            AND pg_catalog.has_table_privilege(
+                current_user,
+                'pg_catalog.pg_inherits',
+                'SELECT')
+            AND pg_catalog.has_table_privilege(
+                current_user,
+                'pg_catalog.pg_index',
+                'SELECT')
+            AND pg_catalog.has_table_privilege(
+                current_user,
+                'pg_catalog.pg_attribute',
+                'SELECT')
+            AND pg_catalog.has_table_privilege(
+                current_user,
+                'pg_catalog.pg_am',
+                'SELECT')
+            AND pg_catalog.has_table_privilege(
+                current_user,
+                'pg_catalog.pg_constraint',
+                'SELECT')
+            AND pg_catalog.has_table_privilege(
+                current_user,
+                'pg_catalog.pg_collation',
+                'SELECT')
+            AND pg_catalog.has_table_privilege(
+                current_user,
+                'pg_catalog.pg_opclass',
+                'SELECT')
+                AS catalog_metadata_available
+        """;
+
+    /// <summary>
+    /// C003 — the optional usage-statistics check. It accepts any effective privilege path
+    /// PostgreSQL recognises and deliberately does not require direct membership in a predefined
+    /// role.
+    /// </summary>
+    internal const string CheckUsageStatisticsAccessSql = """
+        SELECT
+            pg_catalog.has_table_privilege(
+                current_user,
+                'pg_catalog.pg_stat_database',
+                'SELECT')
+            AND pg_catalog.has_table_privilege(
+                current_user,
+                'pg_catalog.pg_stat_all_indexes',
+                'SELECT')
+                AS usage_statistics_available
+        """;
+
+    /// <summary>
+    /// C004 — the nullable statistics-reset timestamp for the current database. A NULL means the
+    /// server reported no reset, which does not make the capability unavailable.
+    /// </summary>
+    internal const string ReadStatisticsResetSql = """
+        SELECT
+            statistics.stats_reset
+        FROM pg_catalog.pg_stat_database AS statistics
+        WHERE statistics.datname = pg_catalog.current_database()
+        """;
+
+    /// <summary>
     /// The process-wide canonical inventory.
     /// </summary>
     internal static PostgreSqlSqlInventory Default { get; } = new();
@@ -83,7 +190,7 @@ internal sealed class PostgreSqlSqlInventory
     private readonly Dictionary<PostgreSqlSqlStatementId, PostgreSqlSqlStatementDefinition> _byId;
 
     /// <summary>
-    /// Every definition in canonical order: B001, B002, B003.
+    /// Every definition in canonical order: B001, B002, B003, C001, C002, C003, C004.
     /// </summary>
     internal ReadOnlyCollection<PostgreSqlSqlStatementDefinition> Statements { get; }
 
@@ -119,6 +226,34 @@ internal sealed class PostgreSqlSqlInventory
                     new PostgreSqlSqlParameterDefinition(3, PostgreSqlSqlParameterType.Int32, "idle-in-transaction-timeout milliseconds"),
                 ],
                 "Refuses to run an authorized operation unless the effective state is provably safe."),
+
+            new PostgreSqlSqlStatementDefinition(
+                PostgreSqlSqlStatementId.ReadServerIdentity,
+                PostgreSqlSqlCommandKind.SelectServerIdentity,
+                ReadServerIdentitySql,
+                [],
+                "Supplies the machine-readable version the supported-range policy is decided from."),
+
+            new PostgreSqlSqlStatementDefinition(
+                PostgreSqlSqlStatementId.CheckCatalogMetadataAccess,
+                PostgreSqlSqlCommandKind.SelectCapabilityCheck,
+                CheckCatalogMetadataAccessSql,
+                [],
+                "Refuses to inspect at all unless the required catalog metadata is reachable."),
+
+            new PostgreSqlSqlStatementDefinition(
+                PostgreSqlSqlStatementId.CheckUsageStatisticsAccess,
+                PostgreSqlSqlCommandKind.SelectCapabilityCheck,
+                CheckUsageStatisticsAccessSql,
+                [],
+                "Decides whether optional usage statistics may be read, before reading any."),
+
+            new PostgreSqlSqlStatementDefinition(
+                PostgreSqlSqlStatementId.ReadStatisticsReset,
+                PostgreSqlSqlCommandKind.SelectStatistics,
+                ReadStatisticsResetSql,
+                [],
+                "Reports when counters were last reset so later findings can be qualified."),
         ];
 
         _byId = new Dictionary<PostgreSqlSqlStatementId, PostgreSqlSqlStatementDefinition>(definitions.Length);

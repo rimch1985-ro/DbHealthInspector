@@ -71,6 +71,15 @@ internal interface IPostgreSqlRowSource : IAsyncDisposable
 
     /// <summary>Reads the column at <paramref name="ordinal"/> as a string.</summary>
     string GetString(int ordinal);
+
+    /// <summary>Reads the column at <paramref name="ordinal"/> as a 32-bit integer.</summary>
+    int GetInt32(int ordinal);
+
+    /// <summary>
+    /// Reads the column at <paramref name="ordinal"/> as a <see cref="DateTimeOffset"/>. Called
+    /// only after <c>IsNull</c> has returned <see langword="false"/>.
+    /// </summary>
+    DateTimeOffset GetDateTimeOffset(int ordinal);
 }
 
 /// <summary>
@@ -103,4 +112,15 @@ internal interface IPostgreSqlRowReader : IAsyncDisposable
     /// Reads the column at <paramref name="ordinal"/> as a string.
     /// </summary>
     string GetString(int ordinal);
+
+    /// <summary>
+    /// Reads the column at <paramref name="ordinal"/> as a 32-bit integer.
+    /// </summary>
+    int GetInt32(int ordinal);
+
+    /// <summary>
+    /// Reads the column at <paramref name="ordinal"/> as a <see cref="DateTimeOffset"/>. Called
+    /// only after <see cref="IsNull"/> has returned <see langword="false"/>.
+    /// </summary>
+    DateTimeOffset GetDateTimeOffset(int ordinal);
 }

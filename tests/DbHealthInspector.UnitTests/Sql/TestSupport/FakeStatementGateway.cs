@@ -130,6 +130,10 @@ internal sealed class FakeRowReader : IPostgreSqlRowReader
 
     public string GetString(int ordinal) => (string)_rows[_index][ordinal]!;
 
+    public int GetInt32(int ordinal) => (int)_rows[_index][ordinal]!;
+
+    public DateTimeOffset GetDateTimeOffset(int ordinal) => (DateTimeOffset)_rows[_index][ordinal]!;
+
     public ValueTask DisposeAsync()
     {
         Disposed = true;

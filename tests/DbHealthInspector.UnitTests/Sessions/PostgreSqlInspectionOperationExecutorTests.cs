@@ -1,116 +1,147 @@
 using System.Reflection;
+using DbHealthInspector.PostgreSql.Capabilities;
 using DbHealthInspector.PostgreSql.Sessions;
 using DbHealthInspector.PostgreSql.Sql;
 using DbHealthInspector.UnitTests.Sessions.TestSupport;
+using DbHealthInspector.UnitTests.Sql.TestSupport;
 using Npgsql;
 
 namespace DbHealthInspector.UnitTests.Sessions;
 
 /// <summary>
-/// The authorized operation must not be able to re-run or undo the session initialization
-/// (GC-DHI-04B-C1, F-02).
+/// The authorized operation sees only typed C001–C004 methods (GC-DHI-04C §13). There is no
+/// generic ID dispatch, no SQL string, and no way to name — let alone execute — B001–B003.
 /// </summary>
 public sealed class PostgreSqlInspectionOperationExecutorTests
 {
-    private static PostgreSqlInspectionOperationExecutor View() =>
-        new(new PostgreSqlSqlExecutor(new PostgreSqlSqlInventory(), ScriptedStatementGateway.HealthySession()));
+    private static PostgreSqlInspectionOperationExecutor View(FakeStatementGateway gateway) =>
+        new(new PostgreSqlSqlExecutor(new PostgreSqlSqlInventory(), gateway));
 
-    [Theory]
-    [InlineData(nameof(PostgreSqlSqlStatementId.SetTransactionReadOnly))]
-    [InlineData(nameof(PostgreSqlSqlStatementId.ApplyLocalTimeouts))]
-    [InlineData(nameof(PostgreSqlSqlStatementId.VerifySessionState))]
-    public async Task ExecuteAsync_RejectsEverySessionInitializationStatement(string idName)
+    // --- Typed operations resolve their fixed statements ------------------------------------------
+
+    [Fact]
+    public async Task ReadServerIdentityAsync_ResolvesC001()
     {
-        var id = Enum.Parse<PostgreSqlSqlStatementId>(idName);
+        FakeStatementGateway gateway = FakeStatementGateway.Succeeding(
+            FakeRowReader.WithRows(3, [180004, "synthetic_db", "synthetic_role"]));
 
-        await Assert.ThrowsAsync<PostgreSqlSqlSafetyException>(
-            () => View().ExecuteAsync(id, [], TestContext.Current.CancellationToken).AsTask());
-    }
+        PostgreSqlServerIdentity identity = await View(gateway).ReadServerIdentityAsync(TestContext.Current.CancellationToken);
 
-    [Theory]
-    [InlineData(nameof(PostgreSqlSqlStatementId.SetTransactionReadOnly))]
-    [InlineData(nameof(PostgreSqlSqlStatementId.ApplyLocalTimeouts))]
-    [InlineData(nameof(PostgreSqlSqlStatementId.VerifySessionState))]
-    public void IsSessionInitializationStatement_IsTrueForAllThree(string idName)
-    {
-        var id = Enum.Parse<PostgreSqlSqlStatementId>(idName);
-
-        Assert.True(PostgreSqlInspectionOperationExecutor.IsSessionInitializationStatement(id));
+        Assert.Equal(PostgreSqlSqlStatementId.ReadServerIdentity, Assert.Single(gateway.Executed).Id);
+        Assert.Equal(180004, identity.ServerVersionNumber);
+        Assert.Equal("synthetic_db", identity.DatabaseName);
+        Assert.Equal("synthetic_role", identity.CurrentUser);
     }
 
     [Fact]
-    public async Task ExecuteAsync_RejectsAnUnknownId()
+    public async Task CheckCatalogMetadataAccessAsync_ResolvesC002()
     {
-        await Assert.ThrowsAsync<PostgreSqlSqlSafetyException>(
-            () => View().ExecuteAsync((PostgreSqlSqlStatementId)999, [], TestContext.Current.CancellationToken).AsTask());
+        FakeStatementGateway gateway = FakeStatementGateway.Succeeding(FakeRowReader.WithRows(1, [true]));
+
+        bool available = await View(gateway).CheckCatalogMetadataAccessAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal(PostgreSqlSqlStatementId.CheckCatalogMetadataAccess, Assert.Single(gateway.Executed).Id);
+        Assert.True(available);
     }
 
     [Fact]
-    public async Task ExecuteAsync_RejectionCarriesTheFixedMessageAndNoDetail()
+    public async Task CheckUsageStatisticsAccessAsync_ResolvesC003()
     {
-        PostgreSqlSqlSafetyException exception = await Assert.ThrowsAsync<PostgreSqlSqlSafetyException>(
-            () => View().ExecuteAsync(PostgreSqlSqlStatementId.ApplyLocalTimeouts, [], TestContext.Current.CancellationToken).AsTask());
+        FakeStatementGateway gateway = FakeStatementGateway.Succeeding(FakeRowReader.WithRows(1, [false]));
 
-        Assert.Equal("The PostgreSQL statement failed SQL safety validation.", exception.Message);
-        Assert.DoesNotContain("ApplyLocalTimeouts", exception.ToString(), StringComparison.Ordinal);
-        Assert.DoesNotContain("SET TRANSACTION", exception.ToString(), StringComparison.OrdinalIgnoreCase);
-        Assert.Null(exception.InnerException);
-        Assert.Empty(exception.Data);
+        bool available = await View(gateway).CheckUsageStatisticsAccessAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal(PostgreSqlSqlStatementId.CheckUsageStatisticsAccess, Assert.Single(gateway.Executed).Id);
+        Assert.False(available);
     }
 
     [Fact]
-    public async Task ExecuteAsync_RejectsNullParameters()
+    public async Task ReadStatisticsResetAsync_ResolvesC004()
     {
-        await Assert.ThrowsAsync<ArgumentNullException>(
-            () => View().ExecuteAsync(PostgreSqlSqlStatementId.VerifySessionState, null!, TestContext.Current.CancellationToken).AsTask());
+        var reset = new DateTimeOffset(2026, 8, 1, 12, 0, 0, TimeSpan.Zero);
+        FakeStatementGateway gateway = FakeStatementGateway.Succeeding(FakeRowReader.WithRows(1, [reset]));
+
+        DateTimeOffset? value = await View(gateway).ReadStatisticsResetAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal(PostgreSqlSqlStatementId.ReadStatisticsReset, Assert.Single(gateway.Executed).Id);
+        Assert.Equal(reset, value);
     }
 
     [Fact]
-    public async Task ExecuteAsync_HonoursAPreCanceledToken()
+    public async Task TypedOperationsForwardTheExactToken()
     {
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
-        cts.Cancel();
+        FakeStatementGateway gateway = FakeStatementGateway.Succeeding(FakeRowReader.WithRows(1, [true]));
 
-        await Assert.ThrowsAsync<OperationCanceledException>(
-            () => View().ExecuteAsync(PostgreSqlSqlStatementId.VerifySessionState, [], cts.Token).AsTask());
+        await View(gateway).CheckCatalogMetadataAccessAsync(cts.Token);
+
+        Assert.Equal(cts.Token, Assert.Single(gateway.Tokens));
     }
 
-    // --- Surface constraints --------------------------------------------------------------------
+    // --- Surface constraints -----------------------------------------------------------------------
+
+    private static MethodInfo[] DeclaredMethods() => typeof(PostgreSqlInspectionOperationExecutor)
+        .GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static)
+        .Where(method => method.DeclaringType == typeof(PostgreSqlInspectionOperationExecutor))
+        .ToArray();
 
     [Fact]
-    public void View_ExposesNoExecutorConnectionOrTransaction()
+    public void View_ExposesExactlyTheFourTypedOperations()
     {
-        MemberInfo[] members =
-        [
-            .. typeof(PostgreSqlInspectionOperationExecutor).GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance),
-            .. typeof(PostgreSqlInspectionOperationExecutor).GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static)
-                .Where(method => method.DeclaringType == typeof(PostgreSqlInspectionOperationExecutor)),
-        ];
+        string[] names = DeclaredMethods().Select(method => method.Name).OrderBy(name => name, StringComparer.Ordinal).ToArray();
 
-        Type[] forbidden = [typeof(PostgreSqlSqlExecutor), typeof(NpgsqlConnection), typeof(NpgsqlTransaction), typeof(NpgsqlCommand)];
+        Assert.Equal(
+            [
+                nameof(PostgreSqlInspectionOperationExecutor.CheckCatalogMetadataAccessAsync),
+                nameof(PostgreSqlInspectionOperationExecutor.CheckUsageStatisticsAccessAsync),
+                nameof(PostgreSqlInspectionOperationExecutor.ReadServerIdentityAsync),
+                nameof(PostgreSqlInspectionOperationExecutor.ReadStatisticsResetAsync),
+            ],
+            names);
+    }
 
-        foreach (MemberInfo member in members)
-        {
-            Type? exposed = member switch
-            {
-                PropertyInfo property => property.PropertyType,
-                MethodInfo method => method.ReturnType,
-                _ => null,
-            };
-
-            Assert.DoesNotContain(forbidden, type => type == exposed);
-        }
+    [Fact]
+    public void View_HasNoGenericStatementIdDispatch()
+    {
+        // The 04B-era ExecuteAsync(statementId, parameters, token) is gone: B001–B003 cannot even
+        // be named through this boundary any more.
+        Assert.DoesNotContain(
+            DeclaredMethods(),
+            method => method.GetParameters().Any(parameter => parameter.ParameterType == typeof(PostgreSqlSqlStatementId)));
     }
 
     [Fact]
     public void View_AcceptsNoRawSqlString()
     {
-        MethodInfo[] methods = typeof(PostgreSqlInspectionOperationExecutor)
-            .GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static)
-            .Where(method => method.DeclaringType == typeof(PostgreSqlInspectionOperationExecutor))
-            .ToArray();
+        Assert.DoesNotContain(
+            DeclaredMethods(),
+            method => method.GetParameters().Any(parameter => parameter.ParameterType == typeof(string)));
+    }
 
-        Assert.DoesNotContain(methods, method => method.GetParameters().Any(parameter => parameter.ParameterType == typeof(string)));
+    [Fact]
+    public void View_AcceptsNoArbitraryParameterCollection()
+    {
+        Assert.DoesNotContain(
+            DeclaredMethods(),
+            method => method.GetParameters().Any(parameter =>
+                parameter.ParameterType == typeof(IReadOnlyList<PostgreSqlSqlParameterValue>)));
+    }
+
+    [Fact]
+    public void View_ExposesNoExecutorConnectionTransactionOrCommand()
+    {
+        Type[] forbidden =
+        [
+            typeof(PostgreSqlSqlExecutor), typeof(NpgsqlConnection), typeof(NpgsqlTransaction), typeof(NpgsqlCommand),
+            typeof(IPostgreSqlStatementGateway), typeof(IPostgreSqlRowReader), typeof(IPostgreSqlCommandHandle),
+        ];
+
+        Assert.DoesNotContain(DeclaredMethods(), method => forbidden.Contains(method.ReturnType));
+
+        PropertyInfo[] properties = typeof(PostgreSqlInspectionOperationExecutor)
+            .GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+
+        Assert.Empty(properties);
     }
 
     [Fact]
@@ -132,25 +163,16 @@ public sealed class PostgreSqlInspectionOperationExecutorTests
         Assert.IsNotType<PostgreSqlSqlExecutor>(received);
     }
 
-    [Theory]
-    [InlineData(nameof(PostgreSqlSqlStatementId.SetTransactionReadOnly))]
-    [InlineData(nameof(PostgreSqlSqlStatementId.ApplyLocalTimeouts))]
-    [InlineData(nameof(PostgreSqlSqlStatementId.VerifySessionState))]
-    public async Task Runner_CallbackCannotReExecuteAnInitializationStatement(string idName)
+    [Fact]
+    public async Task Runner_CallbackAddsNoStatementsBeyondB001ToB003()
     {
-        var id = Enum.Parse<PostgreSqlSqlStatementId>(idName);
         var scope = new FakeInspectionSessionScope();
 
         await new PostgreSqlInspectionSessionRunner(scope).RunAsync(
             PostgreSqlInspectionSessionOptions.Default,
-            async (view, token) =>
-            {
-                await Assert.ThrowsAsync<PostgreSqlSqlSafetyException>(() => view.ExecuteAsync(id, [], token).AsTask());
-                return 1;
-            },
+            (_, _) => ValueTask.FromResult(1),
             TestContext.Current.CancellationToken);
 
-        // Only the runner's own three statements ran; the callback added none.
         Assert.Equal(
             [
                 PostgreSqlSqlStatementId.SetTransactionReadOnly,

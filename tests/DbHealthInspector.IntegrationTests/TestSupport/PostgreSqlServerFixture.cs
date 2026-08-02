@@ -60,23 +60,42 @@ public sealed class PostgreSqlServerFixture : IAsyncLifetime
     /// </summary>
     public string AdminConnectionString => BuildConnectionString(AdminUser, AdminPassword);
 
-    public async ValueTask InitializeAsync()
-    {
-        _container = new PostgreSqlBuilder(ImageReference)
-            .WithDatabase(DatabaseName)
-            .WithUsername(AdminUser)
-            .WithPassword(AdminPassword)
-            .Build();
+    /// <summary>
+    /// Initializes under an independent deadline. If any stage after the container starts fails,
+    /// the container is released immediately and the original failure is what surfaces.
+    /// </summary>
+    public ValueTask InitializeAsync() =>
+        TestFixtureLifecycle.InitializeGuardedAsync(
+            async token =>
+            {
+                _container = new PostgreSqlBuilder(ImageReference)
+                    .WithDatabase(DatabaseName)
+                    .WithUsername(AdminUser)
+                    .WithPassword(AdminPassword)
+                    .Build();
 
-        await _container.StartAsync(TestContext.Current.CancellationToken);
-        await CreateSyntheticObjectsAsync(TestContext.Current.CancellationToken);
-    }
+                await _container.StartAsync(token);
+                await CreateSyntheticObjectsAsync(token);
+            },
+            ReleaseContainerAsync,
+            TestContext.Current.CancellationToken);
 
-    public async ValueTask DisposeAsync()
+    /// <summary>
+    /// Normal disposal. A genuine disposal failure propagates rather than being hidden; it cannot
+    /// dispose twice, because the reference is cleared before release.
+    /// </summary>
+    public ValueTask DisposeAsync() => ReleaseContainerAsync();
+
+    /// <summary>
+    /// Releases the container exactly once, whether called by failed initialization or by normal
+    /// disposal, and tolerates never having created or started one.
+    /// </summary>
+    private async ValueTask ReleaseContainerAsync()
     {
-        if (_container is not null)
+        if (_container is { } container)
         {
-            await _container.DisposeAsync();
+            _container = null;
+            await container.DisposeAsync();
         }
     }
 
@@ -182,9 +201,14 @@ public sealed class PostgreSqlServerFixture : IAsyncLifetime
 }
 
 /// <summary>
-/// Groups every server-backed test into one non-parallel collection, so lock and timeout tests
-/// can never run concurrently against the same fixture.
+/// The normal server-backed suite: one collection, one fixture, no parallelism — so lock and
+/// timeout tests can never run concurrently against the same container.
 /// </summary>
+/// <remarks>
+/// It registers <see cref="PostgreSqlServerFixture"/> and nothing else. The permission-loss suite
+/// has its own collection and its own container, so running either suite in isolation starts only
+/// the container that suite actually needs (GC-DHI-04C-C1, R1-07).
+/// </remarks>
 [CollectionDefinition(Name, DisableParallelization = true)]
 public sealed class PostgreSqlServerSuite : ICollectionFixture<PostgreSqlServerFixture>
 {

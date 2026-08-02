@@ -13,19 +13,27 @@ public sealed class PostgreSqlSqlInventoryTests
     private static PostgreSqlSqlInventory Inventory() => new();
 
     [Fact]
-    public void Inventory_ContainsExactlyThreeStatements()
+    public void Inventory_ContainsExactlySevenStatements()
     {
-        Assert.Equal(3, Inventory().Statements.Count);
+        Assert.Equal(7, Inventory().Statements.Count);
     }
 
     [Fact]
-    public void Inventory_OrdersStatementsB001ThenB002ThenB003()
+    public void Inventory_OrdersStatementsB001ThroughC004()
     {
         PostgreSqlSqlInventory inventory = Inventory();
 
-        Assert.Equal(PostgreSqlSqlStatementId.SetTransactionReadOnly, inventory.Statements[0].Id);
-        Assert.Equal(PostgreSqlSqlStatementId.ApplyLocalTimeouts, inventory.Statements[1].Id);
-        Assert.Equal(PostgreSqlSqlStatementId.VerifySessionState, inventory.Statements[2].Id);
+        Assert.Equal(
+            [
+                PostgreSqlSqlStatementId.SetTransactionReadOnly,
+                PostgreSqlSqlStatementId.ApplyLocalTimeouts,
+                PostgreSqlSqlStatementId.VerifySessionState,
+                PostgreSqlSqlStatementId.ReadServerIdentity,
+                PostgreSqlSqlStatementId.CheckCatalogMetadataAccess,
+                PostgreSqlSqlStatementId.CheckUsageStatisticsAccess,
+                PostgreSqlSqlStatementId.ReadStatisticsReset,
+            ],
+            inventory.Statements.Select(statement => statement.Id).ToArray());
     }
 
     [Fact]
@@ -39,10 +47,28 @@ public sealed class PostgreSqlSqlInventoryTests
     }
 
     [Fact]
-    public void StatementIdEnum_DeclaresExactlyThreeMembers()
+    public void StatementIdEnum_DeclaresExactlySevenMembers()
     {
-        // A fourth productive statement id would need a later authorized gate.
-        Assert.Equal(3, Enum.GetValues<PostgreSqlSqlStatementId>().Length);
+        // An eighth productive statement id would need a later authorized gate.
+        Assert.Equal(7, Enum.GetValues<PostgreSqlSqlStatementId>().Length);
+    }
+
+    [Fact]
+    public void CommandKindEnum_DeclaresExactlySixMembers()
+    {
+        Assert.Equal(6, Enum.GetValues<PostgreSqlSqlCommandKind>().Length);
+    }
+
+    [Theory]
+    [InlineData(nameof(PostgreSqlSqlStatementId.ReadServerIdentity))]
+    [InlineData(nameof(PostgreSqlSqlStatementId.CheckCatalogMetadataAccess))]
+    [InlineData(nameof(PostgreSqlSqlStatementId.CheckUsageStatisticsAccess))]
+    [InlineData(nameof(PostgreSqlSqlStatementId.ReadStatisticsReset))]
+    public void CapabilityStatements_TakeNoParameters(string idName)
+    {
+        var id = Enum.Parse<PostgreSqlSqlStatementId>(idName);
+
+        Assert.Empty(Inventory().Resolve(id).Parameters);
     }
 
     [Theory]
@@ -121,6 +147,162 @@ public sealed class PostgreSqlSqlInventoryTests
             """;
 
         Assert.Equal(expected, definition.Sql);
+    }
+
+    [Fact]
+    public void Resolve_C001_ReturnsExactSql()
+    {
+        PostgreSqlSqlStatementDefinition definition = Inventory().Resolve(PostgreSqlSqlStatementId.ReadServerIdentity);
+
+        const string expected = """
+            SELECT
+                pg_catalog.current_setting(
+                    'server_version_num')::integer
+                    AS server_version_number,
+                pg_catalog.current_database()::text
+                    AS database_name,
+                current_user::text
+                    AS current_user
+            """;
+
+        Assert.Equal(expected, definition.Sql);
+        Assert.Equal(PostgreSqlSqlCommandKind.SelectServerIdentity, definition.Kind);
+    }
+
+    [Fact]
+    public void Resolve_C002_ReturnsExactSql()
+    {
+        PostgreSqlSqlStatementDefinition definition = Inventory().Resolve(PostgreSqlSqlStatementId.CheckCatalogMetadataAccess);
+
+        const string expected = """
+            SELECT
+                pg_catalog.has_schema_privilege(
+                    current_user,
+                    'pg_catalog',
+                    'USAGE')
+                AND pg_catalog.has_table_privilege(
+                    current_user,
+                    'pg_catalog.pg_namespace',
+                    'SELECT')
+                AND pg_catalog.has_table_privilege(
+                    current_user,
+                    'pg_catalog.pg_class',
+                    'SELECT')
+                AND pg_catalog.has_table_privilege(
+                    current_user,
+                    'pg_catalog.pg_inherits',
+                    'SELECT')
+                AND pg_catalog.has_table_privilege(
+                    current_user,
+                    'pg_catalog.pg_index',
+                    'SELECT')
+                AND pg_catalog.has_table_privilege(
+                    current_user,
+                    'pg_catalog.pg_attribute',
+                    'SELECT')
+                AND pg_catalog.has_table_privilege(
+                    current_user,
+                    'pg_catalog.pg_am',
+                    'SELECT')
+                AND pg_catalog.has_table_privilege(
+                    current_user,
+                    'pg_catalog.pg_constraint',
+                    'SELECT')
+                AND pg_catalog.has_table_privilege(
+                    current_user,
+                    'pg_catalog.pg_collation',
+                    'SELECT')
+                AND pg_catalog.has_table_privilege(
+                    current_user,
+                    'pg_catalog.pg_opclass',
+                    'SELECT')
+                    AS catalog_metadata_available
+            """;
+
+        Assert.Equal(expected, definition.Sql);
+        Assert.Equal(PostgreSqlSqlCommandKind.SelectCapabilityCheck, definition.Kind);
+    }
+
+    [Fact]
+    public void Resolve_C003_ReturnsExactSql()
+    {
+        PostgreSqlSqlStatementDefinition definition = Inventory().Resolve(PostgreSqlSqlStatementId.CheckUsageStatisticsAccess);
+
+        const string expected = """
+            SELECT
+                pg_catalog.has_table_privilege(
+                    current_user,
+                    'pg_catalog.pg_stat_database',
+                    'SELECT')
+                AND pg_catalog.has_table_privilege(
+                    current_user,
+                    'pg_catalog.pg_stat_all_indexes',
+                    'SELECT')
+                    AS usage_statistics_available
+            """;
+
+        Assert.Equal(expected, definition.Sql);
+        Assert.Equal(PostgreSqlSqlCommandKind.SelectCapabilityCheck, definition.Kind);
+    }
+
+    [Fact]
+    public void Resolve_C004_ReturnsExactSql()
+    {
+        PostgreSqlSqlStatementDefinition definition = Inventory().Resolve(PostgreSqlSqlStatementId.ReadStatisticsReset);
+
+        const string expected = """
+            SELECT
+                statistics.stats_reset
+            FROM pg_catalog.pg_stat_database AS statistics
+            WHERE statistics.datname = pg_catalog.current_database()
+            """;
+
+        Assert.Equal(expected, definition.Sql);
+        Assert.Equal(PostgreSqlSqlCommandKind.SelectStatistics, definition.Kind);
+    }
+
+    [Fact]
+    public void CatalogAllowlist_ContainsExactlyTheTenFrozenEntries()
+    {
+        // The 04C baseline. Widening it silently would let a later gate read a catalog the
+        // capability check never actually proved reachable.
+        PostgreSqlSqlStatementDefinition definition = Inventory().Resolve(PostgreSqlSqlStatementId.CheckCatalogMetadataAccess);
+
+        string[] expected =
+        [
+            "'pg_catalog'",
+            "'pg_catalog.pg_namespace'",
+            "'pg_catalog.pg_class'",
+            "'pg_catalog.pg_inherits'",
+            "'pg_catalog.pg_index'",
+            "'pg_catalog.pg_attribute'",
+            "'pg_catalog.pg_am'",
+            "'pg_catalog.pg_constraint'",
+            "'pg_catalog.pg_collation'",
+            "'pg_catalog.pg_opclass'",
+        ];
+
+        foreach (string entry in expected)
+        {
+            Assert.Contains(entry, definition.Sql, StringComparison.Ordinal);
+        }
+
+        // Exactly ten privilege calls: one schema check plus nine table checks.
+        Assert.Equal(1, CountOccurrences(definition.Sql, "has_schema_privilege"));
+        Assert.Equal(9, CountOccurrences(definition.Sql, "has_table_privilege"));
+    }
+
+    private static int CountOccurrences(string text, string value)
+    {
+        var count = 0;
+        var index = 0;
+        while ((index = text.IndexOf(value, index, StringComparison.Ordinal)) >= 0)
+        {
+            count++;
+            index += value.Length;
+        }
+
+        return count;
     }
 
     [Theory]
@@ -202,18 +384,55 @@ public sealed class PostgreSqlSqlInventoryTests
 
     [Theory]
     [InlineData("pg_sleep")]
-    [InlineData("pg_class")]
-    [InlineData("pg_index")]
-    [InlineData("pg_namespace")]
-    [InlineData("pg_stat")]
-    public void ProductiveSql_ContainsNoTestOnlyOrCatalogMetadataIdentifier(string forbidden)
+    [InlineData("pg_stat_statements")]
+    [InlineData("EXPLAIN")]
+    [InlineData("count(")]
+    public void ProductiveSql_ContainsNoTestOnlyOrProhibitedIdentifier(string forbidden)
     {
-        // These must never appear in any form: pg_sleep belongs only to the IntegrationTests
-        // timeout harness, and the catalog metadata relations belong to GC-DHI-04C onward.
+        // pg_sleep belongs only to the IntegrationTests timeout harness; pg_stat_statements,
+        // EXPLAIN and COUNT(*) are prohibited outright by the gate definition.
         foreach (PostgreSqlSqlStatementDefinition definition in Inventory().Statements)
         {
             Assert.DoesNotContain(forbidden, definition.Sql, StringComparison.OrdinalIgnoreCase);
         }
+    }
+
+    [Theory]
+    [InlineData("pg_class")]
+    [InlineData("pg_namespace")]
+    [InlineData("pg_index")]
+    [InlineData("pg_attribute")]
+    [InlineData("pg_inherits")]
+    [InlineData("pg_constraint")]
+    [InlineData("pg_am")]
+    [InlineData("pg_collation")]
+    [InlineData("pg_opclass")]
+    [InlineData("pg_stat_all_indexes")]
+    public void CatalogRelations_AreOnlyPrivilegeChecked_NeverQueried(string relation)
+    {
+        // GC-DHI-04C names these relations only as string arguments to has_table_privilege — it
+        // asks PostgreSQL *whether* they are readable and never reads a row from them. Actually
+        // querying them belongs to GC-DHI-04D/04E, so each occurrence must sit inside a quoted
+        // literal and never after a FROM or JOIN.
+        foreach (PostgreSqlSqlStatementDefinition definition in Inventory().Statements)
+        {
+            Assert.DoesNotContain($"FROM pg_catalog.{relation}", definition.Sql, StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain($"JOIN pg_catalog.{relation}", definition.Sql, StringComparison.OrdinalIgnoreCase);
+        }
+    }
+
+    [Fact]
+    public void OnlyC004QueriesARelation_AndItIsTheStatisticsView()
+    {
+        // The single FROM clause in the entire productive inventory. Anything else reading a
+        // relation would be table/index metadata work reserved for a later gate.
+        PostgreSqlSqlStatementDefinition[] withFrom = Inventory().Statements
+            .Where(statement => statement.Sql.Contains("FROM ", StringComparison.OrdinalIgnoreCase))
+            .ToArray();
+
+        PostgreSqlSqlStatementDefinition only = Assert.Single(withFrom);
+        Assert.Equal(PostgreSqlSqlStatementId.ReadStatisticsReset, only.Id);
+        Assert.Contains("FROM pg_catalog.pg_stat_database", only.Sql, StringComparison.Ordinal);
     }
 
     [Fact]

@@ -349,18 +349,18 @@ public sealed class PostgreSqlSqlSafetyValidatorTests
     }
 
     [Fact]
-    public void Definition_AcceptsARepeatedPlaceholderThatIsDeclaredOnce()
+    public void RepeatedPlaceholderDeclaredOnce_SatisfiesTheLexicalLayerButIsStillNotAuthorized()
     {
-        // B002/B003 style: the same declared position may legitimately appear more than once in
-        // the text, as long as the set of distinct positions matches the declarations exactly.
-        var definition = new PostgreSqlSqlStatementDefinition(
-            PostgreSqlSqlStatementId.VerifySessionState,
-            PostgreSqlSqlCommandKind.SelectVerification,
-            "SELECT $1, $1",
-            [new PostgreSqlSqlParameterDefinition(1, PostgreSqlSqlParameterType.Int32, "used twice")],
-            "test");
+        // The lexical layer's placeholder rule is about the *set* of distinct positions, so the
+        // same declared position may legitimately appear more than once in the text.
+        PostgreSqlSqlSafetyValidator.ValidateText("SELECT $1, $1");
 
-        PostgreSqlSqlSafetyValidator.Validate(definition);
+        // Passing the lexical layer is nevertheless not enough to become an authorized statement:
+        // the frozen contract rejects it, because it is not one of the seven canonical
+        // definitions (GC-DHI-04C-C1, R1-01).
+        AssertDefinitionRejected(
+            "SELECT $1, $1",
+            [new PostgreSqlSqlParameterDefinition(1, PostgreSqlSqlParameterType.Int32, "used twice")]);
     }
 
     [Fact]
@@ -383,7 +383,8 @@ public sealed class PostgreSqlSqlSafetyValidatorTests
             () => PostgreSqlSqlSafetyValidator.ValidateText("SELECT 1 DROP MARKERSQLSECRET"));
 
         Assert.Equal("The PostgreSQL statement failed SQL safety validation.", exception.Message);
-        Assert.DoesNotContain("MARKERSQLSECRET", exception.ToString(), StringComparison.Ordinal);
+        bool leaked = exception.ToString().Contains("MARKERSQLSECRET", StringComparison.Ordinal);
+        Assert.False(leaked, "The safety exception exposed statement text.");
         Assert.Null(exception.InnerException);
         Assert.Empty(exception.Data);
     }

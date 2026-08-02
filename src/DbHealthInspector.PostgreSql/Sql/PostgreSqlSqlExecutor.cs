@@ -1,4 +1,5 @@
 using System.Runtime.ExceptionServices;
+using DbHealthInspector.PostgreSql.Capabilities;
 using DbHealthInspector.PostgreSql.Sessions;
 using Npgsql;
 
@@ -120,9 +121,30 @@ internal sealed class PostgreSqlSqlExecutor
     /// <c>await using</c>, so a disposal failure can never replace the execution, shape or
     /// cancellation failure that was already propagating (GC-DHI-04B-C1, F-09).
     /// </remarks>
+    private ValueTask<TResult> ReadSingleRowAsync<TResult>(
+        PostgreSqlPreparedStatement statement,
+        int expectedFieldCount,
+        Func<IPostgreSqlRowReader, TResult> project,
+        CancellationToken cancellationToken) =>
+        ReadSingleRowAsync(statement, expectedFieldCount, allowNullColumns: false, project, cancellationToken);
+
+    /// <summary>
+    /// Runs a statement that must return exactly one row of <paramref name="expectedFieldCount"/>
+    /// columns, projects it, and rejects a second row.
+    /// </summary>
+    /// <param name="statement">The resolved statement to run.</param>
+    /// <param name="expectedFieldCount">The exact column count the definition promises.</param>
+    /// <param name="allowNullColumns">
+    /// <see langword="false"/> for every statement whose columns are non-nullable by construction
+    /// — the default. Only C004 sets this, because its single column is legitimately nullable and
+    /// the projection performs its own null check.
+    /// </param>
+    /// <param name="project">Projects the single row into the caller's result type.</param>
+    /// <param name="cancellationToken">Forwarded unchanged to the gateway and the reader.</param>
     private async ValueTask<TResult> ReadSingleRowAsync<TResult>(
         PostgreSqlPreparedStatement statement,
         int expectedFieldCount,
+        bool allowNullColumns,
         Func<IPostgreSqlRowReader, TResult> project,
         CancellationToken cancellationToken)
     {
@@ -144,13 +166,16 @@ internal sealed class PostgreSqlSqlExecutor
                 throw new PostgreSqlSqlResultShapeException();
             }
 
-            // Every column of every inventoried statement is non-nullable by construction, so a
-            // NULL means the server did not answer what the definition promised.
-            for (var ordinal = 0; ordinal < expectedFieldCount; ordinal++)
+            // Columns of a non-nullable statement must not be NULL: a NULL there means the server
+            // did not answer what the definition promised.
+            if (!allowNullColumns)
             {
-                if (reader.IsNull(ordinal))
+                for (var ordinal = 0; ordinal < expectedFieldCount; ordinal++)
                 {
-                    throw new PostgreSqlSqlResultShapeException();
+                    if (reader.IsNull(ordinal))
+                    {
+                        throw new PostgreSqlSqlResultShapeException();
+                    }
                 }
             }
 
@@ -173,6 +198,86 @@ internal sealed class PostgreSqlSqlExecutor
         primary?.Throw();
         disposal?.Throw();
         return result;
+    }
+
+    /// <summary>
+    /// C001 — reads the server's numeric version, database name and current user. Requires
+    /// exactly one row of three non-null columns.
+    /// </summary>
+    internal async ValueTask<PostgreSqlServerIdentity> ReadServerIdentityAsync(CancellationToken cancellationToken)
+    {
+        PostgreSqlPreparedStatement statement = Prepare(_inventory, PostgreSqlSqlStatementId.ReadServerIdentity, []);
+
+        return await ReadSingleRowAsync(
+            statement,
+            expectedFieldCount: 3,
+            project: static reader => new PostgreSqlServerIdentity(
+                reader.GetInt32(0),
+                reader.GetString(1),
+                reader.GetString(2)),
+            cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// C002 — asks whether the required catalog-metadata allowlist is readable. Requires exactly
+    /// one row of one non-null boolean column.
+    /// </summary>
+    internal async ValueTask<bool> CheckCatalogMetadataAccessAsync(CancellationToken cancellationToken)
+    {
+        PostgreSqlPreparedStatement statement = Prepare(_inventory, PostgreSqlSqlStatementId.CheckCatalogMetadataAccess, []);
+
+        return await ReadSingleRowAsync(
+            statement,
+            expectedFieldCount: 1,
+            project: static reader => reader.GetBoolean(0),
+            cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// C003 — asks whether the optional usage-statistics views are readable. Requires exactly one
+    /// row of one non-null boolean column.
+    /// </summary>
+    internal async ValueTask<bool> CheckUsageStatisticsAccessAsync(CancellationToken cancellationToken)
+    {
+        PostgreSqlPreparedStatement statement = Prepare(_inventory, PostgreSqlSqlStatementId.CheckUsageStatisticsAccess, []);
+
+        return await ReadSingleRowAsync(
+            statement,
+            expectedFieldCount: 1,
+            project: static reader => reader.GetBoolean(0),
+            cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// C004 — reads the nullable statistics-reset timestamp. Requires exactly one row of one
+    /// column; that column may be NULL, which is a valid answer meaning the server reported no
+    /// reset. A non-null value must already be UTC — a non-zero offset is a mapping failure and is
+    /// never normalised silently.
+    /// </summary>
+    internal async ValueTask<DateTimeOffset?> ReadStatisticsResetAsync(CancellationToken cancellationToken)
+    {
+        PostgreSqlPreparedStatement statement = Prepare(_inventory, PostgreSqlSqlStatementId.ReadStatisticsReset, []);
+
+        return await ReadSingleRowAsync(
+            statement,
+            expectedFieldCount: 1,
+            allowNullColumns: true,
+            project: static reader =>
+            {
+                if (reader.IsNull(0))
+                {
+                    return (DateTimeOffset?)null;
+                }
+
+                DateTimeOffset value = reader.GetDateTimeOffset(0);
+                if (value.Offset != TimeSpan.Zero)
+                {
+                    throw new PostgreSqlSqlResultShapeException();
+                }
+
+                return value;
+            },
+            cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>

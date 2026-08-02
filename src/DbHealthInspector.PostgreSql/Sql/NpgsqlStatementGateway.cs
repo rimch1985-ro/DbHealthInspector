@@ -204,6 +204,12 @@ internal sealed class NpgsqlStatementGateway : IPostgreSqlStatementGateway
 
         public string GetString(int ordinal) => _reader.GetString(ordinal);
 
+        public int GetInt32(int ordinal) => _reader.GetInt32(ordinal);
+
+        // timestamptz is read as a DateTimeOffset directly; Npgsql yields a zero offset for it,
+        // and the executor rejects any other offset rather than normalising it silently.
+        public DateTimeOffset GetDateTimeOffset(int ordinal) => _reader.GetFieldValue<DateTimeOffset>(ordinal);
+
         public async ValueTask DisposeAsync() => await _reader.DisposeAsync().ConfigureAwait(false);
     }
 
@@ -246,6 +252,10 @@ internal sealed class NpgsqlStatementGateway : IPostgreSqlStatementGateway
         public bool GetBoolean(int ordinal) => _rows.GetBoolean(ordinal);
 
         public string GetString(int ordinal) => _rows.GetString(ordinal);
+
+        public int GetInt32(int ordinal) => _rows.GetInt32(ordinal);
+
+        public DateTimeOffset GetDateTimeOffset(int ordinal) => _rows.GetDateTimeOffset(ordinal);
 
         public async ValueTask DisposeAsync()
         {
