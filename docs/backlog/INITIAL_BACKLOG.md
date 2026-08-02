@@ -3,7 +3,7 @@
 **Backlog version:** 0.1  
 **Status:** Approved baseline  
 **Target:** v0.1.0  
-**Current next gate:** Human review of the GC-DHI-04C definition
+**Current next gate:** Human review of the GC-DHI-04D definition
 
 ---
 
@@ -309,11 +309,11 @@ The orchestrator:
 **Priority:** P0  
 **Gate:** GC-DHI-04C  
 **Definition:** `docs/gates/GC-DHI-04C_DEFINITION.md`  
-**Status:** Defined; implementation awaiting human authorization
+**Status:** Completed
 
 ### Acceptance criteria
 
-The frozen future implementation:
+The integrated implementation:
 
 - executes C001–C004 only through the typed GC-DHI-04B operation boundary;
 - reads numeric `server_version_num`, database name and current user;
@@ -327,31 +327,40 @@ The frozen future implementation:
   `DataProfiling`, with data profiling disabled by policy; and
 - uses the fixed generic, non-sensitive reasons defined by the gate.
 
-The future production inventory is B001–B003 plus C001–C004, exactly seven
-statements. PG-03 is defined but is not implemented or completed.
+The current production inventory is B001–B003 plus C001–C004, exactly seven
+statements. PG-03 is implemented, integrated, approved and closed.
 
 ---
 
 ## PG-04 — Implement table snapshot query
 
-**Priority:** P0
-**Gate:** GC-DHI-04D
+**Priority:** P0  
+**Gate:** GC-DHI-04D  
+**Definition:** `docs/gates/GC-DHI-04D_DEFINITION.md`  
+**Status:** Defined; implementation awaiting human authorization
 
 ### Acceptance criteria
 
-The query returns:
+The frozen future implementation:
 
-- Schema.
-- Table name.
-- Relation kind.
-- Partition state.
-- Estimated rows.
-- Table size.
-- Index size.
-- Total size.
-- Primary-key state.
+- executes one exact multirecord D001 statement, `ReadTableSnapshots`, only
+  through the typed verified-session boundary;
+- expands C002 with the three required size-function `EXECUTE` checks while
+  preserving its ID, kind and one non-null Boolean result;
+- binds exact include and exclude schema names as two non-null `TextArray`
+  parameters and always excludes system schemas;
+- maps ten exact columns to existing `TableSnapshot` values, with partition
+  status taking precedence over partition-root status;
+- preserves nullable estimated rows and non-negative table, index and total
+  sizes without reading business rows or using `COUNT(*)`;
+- derives primary-key state only from `pg_constraint` primary-key constraints;
+- rejects unknown shapes, values and duplicate schema/table pairs; and
+- returns a defensive collection sorted by schema and table using ordinal,
+  case-sensitive comparison.
 
-System schemas and excluded relations are filtered correctly.
+After implementation, the productive inventory will contain exactly B001–B003,
+C001–C004 and D001: eight statements, seven command kinds and two parameter
+types. PG-04 is defined but is not implemented or completed.
 
 ---
 
