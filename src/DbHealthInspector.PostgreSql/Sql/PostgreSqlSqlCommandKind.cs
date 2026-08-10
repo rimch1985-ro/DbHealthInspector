@@ -2,8 +2,7 @@ namespace DbHealthInspector.PostgreSql.Sql;
 
 /// <summary>
 /// The closed classification of command shapes the safety validator knows how to prove safe.
-/// GC-DHI-04C freezes this enum at exactly six kinds; no kind for table or index queries exists
-/// yet.
+/// GC-DHI-04D freezes this enum at exactly seven kinds; no kind for index queries exists yet.
 /// </summary>
 internal enum PostgreSqlSqlCommandKind
 {
@@ -39,4 +38,10 @@ internal enum PostgreSqlSqlCommandKind
     /// A <c>SELECT</c> over a server statistics view. It reads no business row.
     /// </summary>
     SelectStatistics,
+
+    /// <summary>
+    /// A multirecord <c>SELECT</c> over <c>pg_catalog</c> relation metadata, filtered by two
+    /// bound schema arrays. It reads catalog rows and relation sizes only — never a business row.
+    /// </summary>
+    SelectTableMetadata,
 }

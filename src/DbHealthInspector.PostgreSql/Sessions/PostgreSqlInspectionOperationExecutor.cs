@@ -1,5 +1,6 @@
 using DbHealthInspector.PostgreSql.Capabilities;
 using DbHealthInspector.PostgreSql.Sql;
+using DbHealthInspector.PostgreSql.Tables;
 
 namespace DbHealthInspector.PostgreSql.Sessions;
 
@@ -16,10 +17,11 @@ namespace DbHealthInspector.PostgreSql.Sessions;
 /// the session out from under the guarantees the runner just established.
 /// </para>
 /// <para>
-/// GC-DHI-04C replaces the previous generic, ID-dispatching method with one <b>typed</b> method
-/// per authorized operation. B001–B003 are therefore not merely rejected at run time: there is no
-/// longer any surface through which a caller could name them at all, and no overload accepts a
-/// statement ID, a SQL string or arbitrary parameters.
+/// GC-DHI-04C replaced the previous generic, ID-dispatching method with one <b>typed</b> method
+/// per authorized operation, and GC-DHI-04D adds the fifth: C001–C004 and D001. B001–B003 are
+/// therefore not merely rejected at run time: there is no longer any surface through which a
+/// caller could name them at all, and no overload accepts a statement ID, a SQL string or
+/// arbitrary parameters.
 /// </para>
 /// <para>
 /// The view exposes no connection, no transaction, no command, no raw SQL and no property or
@@ -60,4 +62,17 @@ internal sealed class PostgreSqlInspectionOperationExecutor
     /// </summary>
     internal ValueTask<DateTimeOffset?> ReadStatisticsResetAsync(CancellationToken cancellationToken) =>
         _executor.ReadStatisticsResetAsync(cancellationToken);
+
+    /// <summary>
+    /// D001 — reads one metadata row per eligible relation, restricted by an already-validated
+    /// schema filter.
+    /// </summary>
+    /// <remarks>
+    /// The filter is the only input, and it carries exact schema names rather than SQL: there is
+    /// no overload taking a statement id, SQL text, a pattern or a generic parameter collection.
+    /// </remarks>
+    internal ValueTask<PostgreSqlTableSnapshotQueryResult> ReadTableSnapshotsAsync(
+        PostgreSqlSchemaFilter filter,
+        CancellationToken cancellationToken) =>
+        _executor.ReadTableSnapshotsAsync(filter, cancellationToken);
 }

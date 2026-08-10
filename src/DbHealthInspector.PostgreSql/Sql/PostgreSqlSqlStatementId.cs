@@ -1,10 +1,10 @@
 namespace DbHealthInspector.PostgreSql.Sql;
 
 /// <summary>
-/// The closed set of statement identifiers the productive SQL inventory recognises. GC-DHI-04C
-/// freezes this enum at exactly seven members — the three session-initialization statements
-/// (B001–B003) plus the four capability-probe statements (C001–C004). An eighth productive
-/// statement requires a later authorised gate.
+/// The closed set of statement identifiers the productive SQL inventory recognises. GC-DHI-04D
+/// freezes this enum at exactly eight members — the three session-initialization statements
+/// (B001–B003), the four capability-probe statements (C001–C004) and the single table-snapshot
+/// query (D001). A ninth productive statement requires a later authorised gate.
 /// </summary>
 internal enum PostgreSqlSqlStatementId
 {
@@ -44,4 +44,9 @@ internal enum PostgreSqlSqlStatementId
     /// C004 — reads the nullable statistics-reset timestamp.
     /// </summary>
     ReadStatisticsReset,
+
+    /// <summary>
+    /// D001 — reads one metadata row per eligible table-like relation.
+    /// </summary>
+    ReadTableSnapshots,
 }

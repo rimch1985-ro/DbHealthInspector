@@ -8,7 +8,7 @@ namespace DbHealthInspector.PostgreSql.Sql;
 /// </summary>
 /// <remarks>
 /// <para>
-/// GC-DHI-04C freezes the productive inventory at exactly seven statements, in this order: the
+/// GC-DHI-04D freezes the productive inventory at exactly eight statements, in this order: the
 /// three session-initialization statements — B001
 /// (<see cref="PostgreSqlSqlStatementId.SetTransactionReadOnly"/>), B002
 /// (<see cref="PostgreSqlSqlStatementId.ApplyLocalTimeouts"/>) and B003
@@ -17,19 +17,21 @@ namespace DbHealthInspector.PostgreSql.Sql;
 /// (<see cref="PostgreSqlSqlStatementId.ReadServerIdentity"/>), C002
 /// (<see cref="PostgreSqlSqlStatementId.CheckCatalogMetadataAccess"/>), C003
 /// (<see cref="PostgreSqlSqlStatementId.CheckUsageStatisticsAccess"/>) and C004
-/// (<see cref="PostgreSqlSqlStatementId.ReadStatisticsReset"/>).
+/// (<see cref="PostgreSqlSqlStatementId.ReadStatisticsReset"/>) — and finally the single
+/// table-snapshot query D001
+/// (<see cref="PostgreSqlSqlStatementId.ReadTableSnapshots"/>).
 /// </para>
 /// <para>
 /// B001–B003 are reserved to the session runner and are unreachable from an authorized operation;
-/// C001–C004 are the typed operations the capability probe may run. An eighth productive statement
-/// requires a later authorised gate.
+/// C001–C004 and D001 are the typed operations an authorized callback may run. A ninth productive
+/// statement — including any index query — requires a later authorised gate.
 /// </para>
 /// <para>
 /// There is no lookup by SQL text, no runtime registration, no external SQL file, no assembly
 /// reflection scan and no mutable collection reachable from outside. Every definition passes both
 /// layers of <see cref="PostgreSqlSqlSafetyValidator"/> during construction — the lexical scan and
 /// the frozen statement contract — so an inventory instance that exists at all is one whose every
-/// statement has already been proven to be one of the seven canonical definitions. The executor
+/// statement has already been proven to be one of the eight canonical definitions. The executor
 /// therefore never re-parses SQL on the hot path.
 /// </para>
 /// </remarks>
@@ -103,10 +105,16 @@ internal sealed class PostgreSqlSqlInventory
         """;
 
     /// <summary>
-    /// C002 — the required catalog-metadata allowlist. Every relation named here is one a later
-    /// gate needs; the list is a frozen baseline, and anything GC-DHI-04D or GC-DHI-04E needs
-    /// beyond it must be added explicitly in its own gate. It asks PostgreSQL about privileges
-    /// only and reads no catalog row.
+    /// C002 — the required catalog-metadata allowlist, plus the three relation-size functions
+    /// D001 calls. Every relation and function named here is one the product needs; the list is a
+    /// frozen baseline, and anything GC-DHI-04E needs beyond it must be added explicitly in its
+    /// own gate. It asks PostgreSQL about privileges only and reads no catalog row.
+    /// <para>
+    /// The three <c>has_function_privilege</c> checks are reproduced verbatim from GC-DHI-04D §8,
+    /// including that section's indentation, so the added text can be diffed against the
+    /// definition character for character. SQL is whitespace-insensitive, so this affects nothing
+    /// but the literal's appearance.
+    /// </para>
     /// </summary>
     internal const string CheckCatalogMetadataAccessSql = """
         SELECT
@@ -150,6 +158,18 @@ internal sealed class PostgreSqlSqlInventory
                 current_user,
                 'pg_catalog.pg_opclass',
                 'SELECT')
+        AND pg_catalog.has_function_privilege(
+            current_user,
+            'pg_catalog.pg_table_size(regclass)',
+            'EXECUTE')
+        AND pg_catalog.has_function_privilege(
+            current_user,
+            'pg_catalog.pg_indexes_size(regclass)',
+            'EXECUTE')
+        AND pg_catalog.has_function_privilege(
+            current_user,
+            'pg_catalog.pg_total_relation_size(regclass)',
+            'EXECUTE')
                 AS catalog_metadata_available
         """;
 
@@ -183,6 +203,76 @@ internal sealed class PostgreSqlSqlInventory
         """;
 
     /// <summary>
+    /// D001 — one metadata row per eligible table-like relation. Frozen character-for-character by
+    /// GC-DHI-04D §9. It reads <c>pg_catalog</c> relation metadata and the three relation-size
+    /// functions only: no business row, no <c>COUNT(*)</c>, no dynamic identifier, no concatenated
+    /// schema name. The two schema filters arrive exclusively as bound <c>text[]</c> parameters.
+    /// </summary>
+    internal const string ReadTableSnapshotsSql = """
+        SELECT
+            namespace.nspname::text
+                AS schema_name,
+            relation.relname::text
+                AS table_name,
+            relation.relkind::text
+                AS relation_kind,
+            relation.relpersistence::text
+                AS relation_persistence,
+            relation.relispartition
+                AS is_partition,
+            CASE
+                WHEN relation.relkind = 'v'
+                    OR relation.reltuples < 0
+                    THEN NULL::bigint
+                ELSE relation.reltuples::bigint
+            END
+                AS estimated_row_count,
+            CASE
+                WHEN relation.relkind IN ('r', 'm', 'p')
+                    THEN pg_catalog.pg_table_size(relation.oid)
+                ELSE 0::bigint
+            END
+                AS table_size_bytes,
+            CASE
+                WHEN relation.relkind IN ('r', 'm', 'p')
+                    THEN pg_catalog.pg_indexes_size(relation.oid)
+                ELSE 0::bigint
+            END
+                AS index_size_bytes,
+            CASE
+                WHEN relation.relkind IN ('r', 'm', 'p')
+                    THEN pg_catalog.pg_total_relation_size(relation.oid)
+                ELSE 0::bigint
+            END
+                AS total_size_bytes,
+            EXISTS (
+                SELECT 1
+                FROM pg_catalog.pg_constraint AS constraint_record
+                WHERE constraint_record.conrelid = relation.oid
+                  AND constraint_record.contype = 'p'
+            )
+                AS has_primary_key
+        FROM pg_catalog.pg_class AS relation
+        INNER JOIN pg_catalog.pg_namespace AS namespace
+            ON namespace.oid = relation.relnamespace
+        WHERE relation.relkind IN ('r', 'p', 'v', 'm', 'f')
+          AND namespace.nspname <> 'pg_catalog'
+          AND namespace.nspname <> 'information_schema'
+          AND namespace.nspname NOT LIKE 'pg_toast%'
+          AND namespace.nspname NOT LIKE 'pg_temp_%'
+          AND (
+              pg_catalog.cardinality($1::text[]) = 0
+              OR namespace.nspname::text = ANY($1::text[])
+          )
+          AND NOT (
+              namespace.nspname::text = ANY($2::text[])
+          )
+        ORDER BY
+            namespace.nspname,
+            relation.relname
+        """;
+
+    /// <summary>
     /// The process-wide canonical inventory.
     /// </summary>
     internal static PostgreSqlSqlInventory Default { get; } = new();
@@ -190,7 +280,7 @@ internal sealed class PostgreSqlSqlInventory
     private readonly Dictionary<PostgreSqlSqlStatementId, PostgreSqlSqlStatementDefinition> _byId;
 
     /// <summary>
-    /// Every definition in canonical order: B001, B002, B003, C001, C002, C003, C004.
+    /// Every definition in canonical order: B001, B002, B003, C001, C002, C003, C004, D001.
     /// </summary>
     internal ReadOnlyCollection<PostgreSqlSqlStatementDefinition> Statements { get; }
 
@@ -254,6 +344,16 @@ internal sealed class PostgreSqlSqlInventory
                 ReadStatisticsResetSql,
                 [],
                 "Reports when counters were last reset so later findings can be qualified."),
+
+            new PostgreSqlSqlStatementDefinition(
+                PostgreSqlSqlStatementId.ReadTableSnapshots,
+                PostgreSqlSqlCommandKind.SelectTableMetadata,
+                ReadTableSnapshotsSql,
+                [
+                    new PostgreSqlSqlParameterDefinition(1, PostgreSqlSqlParameterType.TextArray, "included schema names"),
+                    new PostgreSqlSqlParameterDefinition(2, PostgreSqlSqlParameterType.TextArray, "excluded schema names"),
+                ],
+                "Reads relation metadata for eligible tables only, never a business row."),
         ];
 
         _byId = new Dictionary<PostgreSqlSqlStatementId, PostgreSqlSqlStatementDefinition>(definitions.Length);
