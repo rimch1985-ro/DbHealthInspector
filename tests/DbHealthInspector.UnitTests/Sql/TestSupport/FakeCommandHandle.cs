@@ -125,6 +125,13 @@ internal sealed class FakeRowSource : IPostgreSqlRowSource
     internal static FakeRowSource Empty(int fieldCount, Exception? disposeFailure = null) =>
         new([], fieldCount, disposeFailure);
 
+    /// <summary>
+    /// Scripts explicit rows, so a caller can place a value whose CLR type is not the one the
+    /// statement promises and drive the typed-read seam through the real gateway.
+    /// </summary>
+    internal static FakeRowSource WithRows(int fieldCount, params object?[][] rows) =>
+        new(rows, fieldCount, null);
+
     public ValueTask<bool> ReadAsync(CancellationToken cancellationToken)
     {
         _index++;
@@ -138,6 +145,8 @@ internal sealed class FakeRowSource : IPostgreSqlRowSource
     public string GetString(int ordinal) => (string)_rows[_index][ordinal]!;
 
     public int GetInt32(int ordinal) => (int)_rows[_index][ordinal]!;
+
+    public long GetInt64(int ordinal) => (long)_rows[_index][ordinal]!;
 
     public DateTimeOffset GetDateTimeOffset(int ordinal) => (DateTimeOffset)_rows[_index][ordinal]!;
 

@@ -13,13 +13,13 @@ public sealed class PostgreSqlSqlInventoryTests
     private static PostgreSqlSqlInventory Inventory() => new();
 
     [Fact]
-    public void Inventory_ContainsExactlySevenStatements()
+    public void Inventory_ContainsExactlyEightStatements()
     {
-        Assert.Equal(7, Inventory().Statements.Count);
+        Assert.Equal(8, Inventory().Statements.Count);
     }
 
     [Fact]
-    public void Inventory_OrdersStatementsB001ThroughC004()
+    public void Inventory_OrdersStatementsB001ThroughD001()
     {
         PostgreSqlSqlInventory inventory = Inventory();
 
@@ -32,6 +32,7 @@ public sealed class PostgreSqlSqlInventoryTests
                 PostgreSqlSqlStatementId.CheckCatalogMetadataAccess,
                 PostgreSqlSqlStatementId.CheckUsageStatisticsAccess,
                 PostgreSqlSqlStatementId.ReadStatisticsReset,
+                PostgreSqlSqlStatementId.ReadTableSnapshots,
             ],
             inventory.Statements.Select(statement => statement.Id).ToArray());
     }
@@ -47,16 +48,25 @@ public sealed class PostgreSqlSqlInventoryTests
     }
 
     [Fact]
-    public void StatementIdEnum_DeclaresExactlySevenMembers()
+    public void StatementIdEnum_DeclaresExactlyEightMembers()
     {
-        // An eighth productive statement id would need a later authorized gate.
-        Assert.Equal(7, Enum.GetValues<PostgreSqlSqlStatementId>().Length);
+        // A ninth productive statement id — an index query above all — needs a later authorized
+        // gate.
+        Assert.Equal(8, Enum.GetValues<PostgreSqlSqlStatementId>().Length);
     }
 
     [Fact]
-    public void CommandKindEnum_DeclaresExactlySixMembers()
+    public void CommandKindEnum_DeclaresExactlySevenMembers()
     {
-        Assert.Equal(6, Enum.GetValues<PostgreSqlSqlCommandKind>().Length);
+        Assert.Equal(7, Enum.GetValues<PostgreSqlSqlCommandKind>().Length);
+    }
+
+    [Fact]
+    public void ParameterTypeEnum_DeclaresExactlyTwoMembers()
+    {
+        // Int32 for the three timeouts, TextArray for the two schema filters. Nothing else is
+        // bindable, so no object, dynamic or generic conversion path can exist.
+        Assert.Equal(2, Enum.GetValues<PostgreSqlSqlParameterType>().Length);
     }
 
     [Theory]
@@ -216,11 +226,178 @@ public sealed class PostgreSqlSqlInventoryTests
                     current_user,
                     'pg_catalog.pg_opclass',
                     'SELECT')
+            AND pg_catalog.has_function_privilege(
+                current_user,
+                'pg_catalog.pg_table_size(regclass)',
+                'EXECUTE')
+            AND pg_catalog.has_function_privilege(
+                current_user,
+                'pg_catalog.pg_indexes_size(regclass)',
+                'EXECUTE')
+            AND pg_catalog.has_function_privilege(
+                current_user,
+                'pg_catalog.pg_total_relation_size(regclass)',
+                'EXECUTE')
                     AS catalog_metadata_available
             """;
 
         Assert.Equal(expected, definition.Sql);
         Assert.Equal(PostgreSqlSqlCommandKind.SelectCapabilityCheck, definition.Kind);
+    }
+
+    [Fact]
+    public void Resolve_D001_ReturnsExactSql()
+    {
+        PostgreSqlSqlStatementDefinition definition = Inventory().Resolve(PostgreSqlSqlStatementId.ReadTableSnapshots);
+
+        // An independent transcription of GC-DHI-04D §9, not derived from the productive constant.
+        const string expected = """
+            SELECT
+                namespace.nspname::text
+                    AS schema_name,
+                relation.relname::text
+                    AS table_name,
+                relation.relkind::text
+                    AS relation_kind,
+                relation.relpersistence::text
+                    AS relation_persistence,
+                relation.relispartition
+                    AS is_partition,
+                CASE
+                    WHEN relation.relkind = 'v'
+                        OR relation.reltuples < 0
+                        THEN NULL::bigint
+                    ELSE relation.reltuples::bigint
+                END
+                    AS estimated_row_count,
+                CASE
+                    WHEN relation.relkind IN ('r', 'm', 'p')
+                        THEN pg_catalog.pg_table_size(relation.oid)
+                    ELSE 0::bigint
+                END
+                    AS table_size_bytes,
+                CASE
+                    WHEN relation.relkind IN ('r', 'm', 'p')
+                        THEN pg_catalog.pg_indexes_size(relation.oid)
+                    ELSE 0::bigint
+                END
+                    AS index_size_bytes,
+                CASE
+                    WHEN relation.relkind IN ('r', 'm', 'p')
+                        THEN pg_catalog.pg_total_relation_size(relation.oid)
+                    ELSE 0::bigint
+                END
+                    AS total_size_bytes,
+                EXISTS (
+                    SELECT 1
+                    FROM pg_catalog.pg_constraint AS constraint_record
+                    WHERE constraint_record.conrelid = relation.oid
+                      AND constraint_record.contype = 'p'
+                )
+                    AS has_primary_key
+            FROM pg_catalog.pg_class AS relation
+            INNER JOIN pg_catalog.pg_namespace AS namespace
+                ON namespace.oid = relation.relnamespace
+            WHERE relation.relkind IN ('r', 'p', 'v', 'm', 'f')
+              AND namespace.nspname <> 'pg_catalog'
+              AND namespace.nspname <> 'information_schema'
+              AND namespace.nspname NOT LIKE 'pg_toast%'
+              AND namespace.nspname NOT LIKE 'pg_temp_%'
+              AND (
+                  pg_catalog.cardinality($1::text[]) = 0
+                  OR namespace.nspname::text = ANY($1::text[])
+              )
+              AND NOT (
+                  namespace.nspname::text = ANY($2::text[])
+              )
+            ORDER BY
+                namespace.nspname,
+                relation.relname
+            """;
+
+        Assert.Equal(expected, definition.Sql);
+        Assert.Equal(PostgreSqlSqlCommandKind.SelectTableMetadata, definition.Kind);
+        Assert.Equal(2, definition.Parameters.Count);
+        Assert.Equal(PostgreSqlSqlParameterType.TextArray, definition.Parameters[0].Type);
+        Assert.Equal(PostgreSqlSqlParameterType.TextArray, definition.Parameters[1].Type);
+        Assert.Equal(1, definition.Parameters[0].Position);
+        Assert.Equal(2, definition.Parameters[1].Position);
+    }
+
+    [Fact]
+    public void D001_ExcludesEverySystemSchemaFamily()
+    {
+        string sql = Inventory().Resolve(PostgreSqlSqlStatementId.ReadTableSnapshots).Sql;
+
+        // The four mandatory exclusions are part of the frozen text, not of the bound filter, so
+        // no include list can re-enable them.
+        Assert.Contains("namespace.nspname <> 'pg_catalog'", sql, StringComparison.Ordinal);
+        Assert.Contains("namespace.nspname <> 'information_schema'", sql, StringComparison.Ordinal);
+        Assert.Contains("namespace.nspname NOT LIKE 'pg_toast%'", sql, StringComparison.Ordinal);
+        Assert.Contains("namespace.nspname NOT LIKE 'pg_temp_%'", sql, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void D001_RestrictsRelationKindsAndNeverNamesAnIndex()
+    {
+        string sql = Inventory().Resolve(PostgreSqlSqlStatementId.ReadTableSnapshots).Sql;
+
+        Assert.Contains("relation.relkind IN ('r', 'p', 'v', 'm', 'f')", sql, StringComparison.Ordinal);
+
+        // 'i' is the index relkind; admitting it would be GC-DHI-04E work.
+        Assert.DoesNotContain("'i'", sql, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void D001_TakesItsSchemaFiltersOnlyAsBoundArrays()
+    {
+        string sql = Inventory().Resolve(PostgreSqlSqlStatementId.ReadTableSnapshots).Sql;
+
+        Assert.Contains("pg_catalog.cardinality($1::text[]) = 0", sql, StringComparison.Ordinal);
+        Assert.Contains("namespace.nspname::text = ANY($1::text[])", sql, StringComparison.Ordinal);
+        Assert.Contains("namespace.nspname::text = ANY($2::text[])", sql, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void D001_DerivesPrimaryKeyOnlyFromPgConstraint()
+    {
+        string sql = Inventory().Resolve(PostgreSqlSqlStatementId.ReadTableSnapshots).Sql;
+
+        Assert.Contains("constraint_record.contype = 'p'", sql, StringComparison.Ordinal);
+        Assert.Contains("constraint_record.conrelid = relation.oid", sql, StringComparison.Ordinal);
+
+        // Never inferred from an index or a relhasindex flag.
+        Assert.DoesNotContain("relhasindex", sql, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("indisprimary", sql, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void D001_UsesTheThreeAuthorizedSizeFunctionsAndNoAggregate()
+    {
+        string sql = Inventory().Resolve(PostgreSqlSqlStatementId.ReadTableSnapshots).Sql;
+
+        Assert.Contains("pg_catalog.pg_table_size(relation.oid)", sql, StringComparison.Ordinal);
+        Assert.Contains("pg_catalog.pg_indexes_size(relation.oid)", sql, StringComparison.Ordinal);
+        Assert.Contains("pg_catalog.pg_total_relation_size(relation.oid)", sql, StringComparison.Ordinal);
+
+        // A partitioned root reports only its own OID's sizes: no descendant aggregation.
+        foreach (string forbidden in new[] { "pg_partition_tree", "pg_inherits", "sum(", "WITH RECURSIVE", "pg_size_pretty" })
+        {
+            Assert.DoesNotContain(forbidden, sql, StringComparison.OrdinalIgnoreCase);
+        }
+    }
+
+    [Fact]
+    public void C002_ChecksTheThreeSizeFunctionsD001Calls()
+    {
+        string sql = Inventory().Resolve(PostgreSqlSqlStatementId.CheckCatalogMetadataAccess).Sql;
+
+        Assert.Contains("'pg_catalog.pg_table_size(regclass)'", sql, StringComparison.Ordinal);
+        Assert.Contains("'pg_catalog.pg_indexes_size(regclass)'", sql, StringComparison.Ordinal);
+        Assert.Contains("'pg_catalog.pg_total_relation_size(regclass)'", sql, StringComparison.Ordinal);
+
+        // Exactly three function checks, no more.
+        Assert.Equal(3, sql.Split("has_function_privilege").Length - 1);
     }
 
     [Fact]
@@ -398,22 +575,19 @@ public sealed class PostgreSqlSqlInventoryTests
     }
 
     [Theory]
-    [InlineData("pg_class")]
-    [InlineData("pg_namespace")]
     [InlineData("pg_index")]
     [InlineData("pg_attribute")]
     [InlineData("pg_inherits")]
-    [InlineData("pg_constraint")]
     [InlineData("pg_am")]
     [InlineData("pg_collation")]
     [InlineData("pg_opclass")]
     [InlineData("pg_stat_all_indexes")]
-    public void CatalogRelations_AreOnlyPrivilegeChecked_NeverQueried(string relation)
+    public void AllowlistedRelationsD001DoesNotNeed_AreOnlyPrivilegeChecked_NeverQueried(string relation)
     {
-        // GC-DHI-04C names these relations only as string arguments to has_table_privilege — it
-        // asks PostgreSQL *whether* they are readable and never reads a row from them. Actually
-        // querying them belongs to GC-DHI-04D/04E, so each occurrence must sit inside a quoted
-        // literal and never after a FROM or JOIN.
+        // These relations are named only as string arguments to has_table_privilege: the product
+        // asks PostgreSQL *whether* they are readable and never reads a row from them. Querying
+        // pg_index, pg_attribute, pg_inherits, pg_am, pg_collation or pg_opclass would be index,
+        // column or partition-tree work reserved for GC-DHI-04E.
         foreach (PostgreSqlSqlStatementDefinition definition in Inventory().Statements)
         {
             Assert.DoesNotContain($"FROM pg_catalog.{relation}", definition.Sql, StringComparison.OrdinalIgnoreCase);
@@ -422,17 +596,25 @@ public sealed class PostgreSqlSqlInventoryTests
     }
 
     [Fact]
-    public void OnlyC004QueriesARelation_AndItIsTheStatisticsView()
+    public void OnlyC004AndD001QueryRelations_AndOnlyTheOnesTheirGatesAuthorized()
     {
-        // The single FROM clause in the entire productive inventory. Anything else reading a
-        // relation would be table/index metadata work reserved for a later gate.
-        PostgreSqlSqlStatementDefinition[] withFrom = Inventory().Statements
-            .Where(statement => statement.Sql.Contains("FROM ", StringComparison.OrdinalIgnoreCase))
-            .ToArray();
+        // Every FROM clause in the entire productive inventory, and nothing else reads a relation.
+        PostgreSqlSqlStatementDefinition[] withFrom = [.. Inventory().Statements
+            .Where(statement => statement.Sql.Contains("FROM ", StringComparison.OrdinalIgnoreCase))];
 
-        PostgreSqlSqlStatementDefinition only = Assert.Single(withFrom);
-        Assert.Equal(PostgreSqlSqlStatementId.ReadStatisticsReset, only.Id);
-        Assert.Contains("FROM pg_catalog.pg_stat_database", only.Sql, StringComparison.Ordinal);
+        Assert.Equal(
+            [PostgreSqlSqlStatementId.ReadStatisticsReset, PostgreSqlSqlStatementId.ReadTableSnapshots],
+            withFrom.Select(statement => statement.Id).ToArray());
+
+        PostgreSqlSqlStatementDefinition c004 = withFrom[0];
+        Assert.Contains("FROM pg_catalog.pg_stat_database", c004.Sql, StringComparison.Ordinal);
+
+        // D001 reads exactly pg_class, joined to pg_namespace, with a correlated pg_constraint
+        // existence test — the three relations GC-DHI-04D authorizes and no others.
+        PostgreSqlSqlStatementDefinition d001 = withFrom[1];
+        Assert.Contains("FROM pg_catalog.pg_class AS relation", d001.Sql, StringComparison.Ordinal);
+        Assert.Contains("INNER JOIN pg_catalog.pg_namespace AS namespace", d001.Sql, StringComparison.Ordinal);
+        Assert.Contains("FROM pg_catalog.pg_constraint AS constraint_record", d001.Sql, StringComparison.Ordinal);
     }
 
     [Fact]

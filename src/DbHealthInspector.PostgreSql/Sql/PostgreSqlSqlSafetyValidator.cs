@@ -41,6 +41,11 @@ namespace DbHealthInspector.PostgreSql.Sql;
 /// SQL.
 /// </para>
 /// <para>
+/// GC-DHI-04D raises the frozen table to eight statements and widens layer 1's punctuation set by
+/// exactly four characters — <c>&lt;</c>, <c>&gt;</c>, <c>[</c> and <c>]</c> — all required by
+/// D001 and by nothing else. No prohibited token, statement form or placeholder rule was relaxed.
+/// </para>
+/// <para>
 /// There is no relaxed mode, no runtime registration, no test-only bypass and no fallback that
 /// accepts a generic <c>SELECT</c> as an authorized definition.
 /// </para>
@@ -67,7 +72,7 @@ internal static class PostgreSqlSqlSafetyValidator
     /// <summary>
     /// Validates <paramref name="definition"/> through both layers: first every structural, token,
     /// shape and placeholder rule, then the frozen statement contract. Throws on the first
-    /// violation found; returns normally only for one of the seven canonical definitions.
+    /// violation found; returns normally only for one of the eight canonical definitions.
     /// </summary>
     /// <exception cref="ArgumentNullException"><paramref name="definition"/> is <see langword="null"/>.</exception>
     /// <exception cref="PostgreSqlSqlSafetyException">The statement violates a safety rule.</exception>
@@ -134,7 +139,7 @@ internal static class PostgreSqlSqlSafetyValidator
     }
 
     /// <summary>
-    /// The complete frozen inventory contract — the only seven (id, kind, SQL, parameters)
+    /// The complete frozen inventory contract — the only eight (id, kind, SQL, parameters)
     /// combinations that exist.
     /// </summary>
     /// <remarks>
@@ -179,16 +184,22 @@ internal static class PostgreSqlSqlSafetyValidator
         [PostgreSqlSqlStatementId.ReadStatisticsReset] = new(
             PostgreSqlSqlCommandKind.SelectStatistics,
             PostgreSqlSqlInventory.ReadStatisticsResetSql),
+
+        [PostgreSqlSqlStatementId.ReadTableSnapshots] = new(
+            PostgreSqlSqlCommandKind.SelectTableMetadata,
+            PostgreSqlSqlInventory.ReadTableSnapshotsSql,
+            PostgreSqlSqlParameterType.TextArray,
+            PostgreSqlSqlParameterType.TextArray),
     };
 
     /// <summary>
-    /// Layer 2. Requires the whole (id, kind, SQL, parameters) tuple to be one of the seven frozen
+    /// Layer 2. Requires the whole (id, kind, SQL, parameters) tuple to be one of the eight frozen
     /// combinations. Every other combination — including a canonical SQL declared under the wrong
     /// kind, a canonical kind carrying different SQL, or a single added, removed or altered token
     /// — is rejected.
     /// </summary>
     /// <exception cref="PostgreSqlSqlSafetyException">
-    /// The statement is not one of the seven canonical definitions.
+    /// The statement is not one of the eight canonical definitions.
     /// </exception>
     private static void ValidateFrozenStatementContract(PostgreSqlSqlStatementDefinition definition)
     {
@@ -389,7 +400,8 @@ internal static class PostgreSqlSqlSafetyValidator
                 continue;
             }
 
-            // Remaining punctuation legitimately used by the inventory: ( ) , . : * = + - /
+            // Remaining punctuation legitimately used by the inventory:
+            // ( ) , . : * = + - / and, since D001, < > [ ]
             if (IsAllowedPunctuation(current))
             {
                 FlushToken();
@@ -407,8 +419,21 @@ internal static class PostgreSqlSqlSafetyValidator
         return result;
     }
 
+    /// <summary>
+    /// The punctuation the inventory legitimately contains. Anything else is an unknown form and
+    /// fails closed.
+    /// </summary>
+    /// <remarks>
+    /// GC-DHI-04D adds four characters, each required by D001 and by nothing else: <c>&lt;</c> and
+    /// <c>&gt;</c> for the <c>&lt;&gt;</c> schema comparisons and the <c>reltuples &lt; 0</c> test,
+    /// and <c>[</c> and <c>]</c> for the <c>text[]</c> parameter casts. They are ordinary SQL
+    /// punctuation, they introduce no statement-level construct, and the frozen-contract layer
+    /// still pins the exact text of every authorized statement — so widening the character set
+    /// here cannot widen what may actually execute.
+    /// </remarks>
     private static bool IsAllowedPunctuation(char value) =>
-        value is '(' or ')' or ',' or '.' or ':' or '*' or '=' or '+' or '-' or '/';
+        value is '(' or ')' or ',' or '.' or ':' or '*' or '=' or '+' or '-' or '/'
+            or '<' or '>' or '[' or ']';
 
     private static int SkipStringLiteral(string sql, int index)
     {
@@ -598,7 +623,8 @@ internal static class PostgreSqlSqlSafetyValidator
                 or PostgreSqlSqlCommandKind.SelectVerification
                 or PostgreSqlSqlCommandKind.SelectServerIdentity
                 or PostgreSqlSqlCommandKind.SelectCapabilityCheck
-                or PostgreSqlSqlCommandKind.SelectStatistics =>
+                or PostgreSqlSqlCommandKind.SelectStatistics
+                or PostgreSqlSqlCommandKind.SelectTableMetadata =>
                 observed == PostgreSqlSqlCommandKind.SelectVerification,
             _ => false,
         };

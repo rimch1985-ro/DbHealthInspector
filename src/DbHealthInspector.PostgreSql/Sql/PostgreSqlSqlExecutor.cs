@@ -1,6 +1,8 @@
 using System.Runtime.ExceptionServices;
+using DbHealthInspector.Core.Snapshots;
 using DbHealthInspector.PostgreSql.Capabilities;
 using DbHealthInspector.PostgreSql.Sessions;
+using DbHealthInspector.PostgreSql.Tables;
 using Npgsql;
 
 namespace DbHealthInspector.PostgreSql.Sql;
@@ -279,6 +281,163 @@ internal sealed class PostgreSqlSqlExecutor
             },
             cancellationToken).ConfigureAwait(false);
     }
+
+    /// <summary>
+    /// D001 — reads one metadata row per eligible relation. The only multirecord statement in the
+    /// inventory: zero rows is a valid answer, and each row must have exactly ten columns of which
+    /// only the estimate may be NULL.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The two schema arrays are bound, never interpolated. Rows are mapped one at a time as they
+    /// are read, and a failure at any row abandons the whole read: no partial collection is ever
+    /// returned.
+    /// </para>
+    /// <para>
+    /// The reader is released through the same EDI-safe cleanup every other statement uses, so a
+    /// shape failure, a mapping failure or a cancellation is never replaced by a disposal failure.
+    /// </para>
+    /// </remarks>
+    internal async ValueTask<PostgreSqlTableSnapshotQueryResult> ReadTableSnapshotsAsync(
+        PostgreSqlSchemaFilter filter,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(filter);
+
+        // A caller who has already asked to stop must not reach the server at all. Npgsql would
+        // very likely refuse too, but the contract is stated here rather than inherited from
+        // driver behaviour.
+        cancellationToken.ThrowIfCancellationRequested();
+
+        PostgreSqlPreparedStatement statement = Prepare(
+            _inventory,
+            PostgreSqlSqlStatementId.ReadTableSnapshots,
+            [
+                PostgreSqlSqlParameterValue.TextArray(1, filter.IncludedSchemas),
+                PostgreSqlSqlParameterValue.TextArray(2, filter.ExcludedSchemas),
+            ]);
+
+        IPostgreSqlRowReader reader = await _gateway
+            .ExecuteReaderAsync(statement, cancellationToken)
+            .ConfigureAwait(false);
+
+        // Deliberately not `await using`: that compiles to a try/finally in which a disposal
+        // failure would replace the primary failure.
+        ExceptionDispatchInfo? primary = null;
+        var snapshots = new List<TableSnapshot>();
+        try
+        {
+            while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+            {
+                if (reader.FieldCount != TableSnapshotFieldCount)
+                {
+                    throw new PostgreSqlSqlResultShapeException();
+                }
+
+                for (var ordinal = 0; ordinal < TableSnapshotFieldCount; ordinal++)
+                {
+                    // Ordinal 5 — the row estimate — is the only column D001 may return as NULL.
+                    if (ordinal != EstimatedRowCountOrdinal && reader.IsNull(ordinal))
+                    {
+                        throw new PostgreSqlSqlResultShapeException();
+                    }
+                }
+
+                TableSnapshotRow row = ReadTableSnapshotRow(reader);
+
+                snapshots.Add(PostgreSqlTableSnapshotMapper.Map(
+                    row.SchemaName,
+                    row.TableName,
+                    row.RelationKind,
+                    row.RelationPersistence,
+                    row.IsPartition,
+                    row.EstimatedRowCount,
+                    row.TableSizeBytes,
+                    row.IndexSizeBytes,
+                    row.TotalSizeBytes,
+                    row.HasPrimaryKey));
+            }
+        }
+        catch (Exception exception)
+        {
+            // Transparent capture: nothing is inspected, classified, sanitized or rewritten.
+            primary = ExceptionDispatchInfo.Capture(exception);
+        }
+
+        ExceptionDispatchInfo? disposal = await PostgreSqlAsyncCleanup
+            .RunAllAsync(reader.DisposeAsync)
+            .ConfigureAwait(false);
+
+        primary?.Throw();
+        disposal?.Throw();
+
+        // Reached only when every row mapped, so the result is always complete or absent.
+        return new PostgreSqlTableSnapshotQueryResult(snapshots);
+    }
+
+    /// <summary>
+    /// The ten typed values of one D001 row, captured before any of them is validated. Exists so
+    /// the typed reads occupy one narrow, provable seam instead of being spread across a call.
+    /// </summary>
+    private readonly record struct TableSnapshotRow(
+        string SchemaName,
+        string TableName,
+        string RelationKind,
+        string RelationPersistence,
+        bool IsPartition,
+        long? EstimatedRowCount,
+        long TableSizeBytes,
+        long IndexSizeBytes,
+        long TotalSizeBytes,
+        bool HasPrimaryKey);
+
+    /// <summary>
+    /// Reads the ten typed columns of the current D001 row.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// A column whose runtime type is not the one D001 promises makes the reader raise
+    /// <see cref="InvalidCastException"/>. That is a bad row like any other, so it is translated
+    /// here — at the exact seam where it can arise — into the fixed, valueless
+    /// <see cref="PostgreSqlTableSnapshotMappingException"/>. Letting it escape would put a
+    /// driver-authored message naming the CLR types, and potentially the offending value, on a
+    /// surface that crosses the session boundary.
+    /// </para>
+    /// <para>
+    /// The catch is deliberately narrow in both dimensions: one concrete exception type, and only
+    /// the ten reads. Nothing is inspected, no message is parsed, no inner exception is attached
+    /// and no <c>Data</c> entry is added. A cancellation, an Npgsql failure, a disposal failure or
+    /// any other exception passes through completely untouched — none of them means "wrong type",
+    /// and classifying them here would hide a real fault behind a mapping error.
+    /// </para>
+    /// </remarks>
+    private static TableSnapshotRow ReadTableSnapshotRow(IPostgreSqlRowReader reader)
+    {
+        try
+        {
+            return new TableSnapshotRow(
+                reader.GetString(0),
+                reader.GetString(1),
+                reader.GetString(2),
+                reader.GetString(3),
+                reader.GetBoolean(4),
+                reader.IsNull(EstimatedRowCountOrdinal) ? null : reader.GetInt64(EstimatedRowCountOrdinal),
+                reader.GetInt64(6),
+                reader.GetInt64(7),
+                reader.GetInt64(8),
+                reader.GetBoolean(9));
+        }
+        catch (InvalidCastException)
+        {
+            throw new PostgreSqlTableSnapshotMappingException();
+        }
+    }
+
+    /// <summary>The exact column count D001 promises.</summary>
+    private const int TableSnapshotFieldCount = 10;
+
+    /// <summary>The only D001 column that may be NULL.</summary>
+    private const int EstimatedRowCountOrdinal = 5;
 
     /// <summary>
     /// Resolves <paramref name="id"/> through the canonical inventory and checks the supplied

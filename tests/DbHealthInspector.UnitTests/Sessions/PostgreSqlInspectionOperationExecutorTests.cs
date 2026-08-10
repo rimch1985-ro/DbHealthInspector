@@ -86,7 +86,7 @@ public sealed class PostgreSqlInspectionOperationExecutorTests
         .ToArray();
 
     [Fact]
-    public void View_ExposesExactlyTheFourTypedOperations()
+    public void View_ExposesExactlyTheFiveTypedOperations()
     {
         string[] names = DeclaredMethods().Select(method => method.Name).OrderBy(name => name, StringComparer.Ordinal).ToArray();
 
@@ -96,6 +96,7 @@ public sealed class PostgreSqlInspectionOperationExecutorTests
                 nameof(PostgreSqlInspectionOperationExecutor.CheckUsageStatisticsAccessAsync),
                 nameof(PostgreSqlInspectionOperationExecutor.ReadServerIdentityAsync),
                 nameof(PostgreSqlInspectionOperationExecutor.ReadStatisticsResetAsync),
+                nameof(PostgreSqlInspectionOperationExecutor.ReadTableSnapshotsAsync),
             ],
             names);
     }

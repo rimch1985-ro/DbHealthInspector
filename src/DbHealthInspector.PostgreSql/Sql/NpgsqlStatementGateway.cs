@@ -206,6 +206,8 @@ internal sealed class NpgsqlStatementGateway : IPostgreSqlStatementGateway
 
         public int GetInt32(int ordinal) => _reader.GetInt32(ordinal);
 
+        public long GetInt64(int ordinal) => _reader.GetInt64(ordinal);
+
         // timestamptz is read as a DateTimeOffset directly; Npgsql yields a zero offset for it,
         // and the executor rejects any other offset rather than normalising it silently.
         public DateTimeOffset GetDateTimeOffset(int ordinal) => _reader.GetFieldValue<DateTimeOffset>(ordinal);
@@ -222,6 +224,15 @@ internal sealed class NpgsqlStatementGateway : IPostgreSqlStatementGateway
         {
             NpgsqlDbType = NpgsqlDbType.Integer,
             Value = value.Int32Value,
+        },
+
+        // The bound payload is a fresh array built here from the already-copied, read-only
+        // collection, so neither the caller nor the inventory can observe or mutate what Npgsql
+        // receives. Element order is preserved exactly.
+        PostgreSqlSqlParameterType.TextArray => new NpgsqlParameter
+        {
+            NpgsqlDbType = NpgsqlDbType.Array | NpgsqlDbType.Text,
+            Value = value.TextArrayValue.ToArray(),
         },
         _ => throw new ArgumentOutOfRangeException(nameof(value), value.Type, "Undefined parameter type."),
     };
@@ -254,6 +265,8 @@ internal sealed class NpgsqlStatementGateway : IPostgreSqlStatementGateway
         public string GetString(int ordinal) => _rows.GetString(ordinal);
 
         public int GetInt32(int ordinal) => _rows.GetInt32(ordinal);
+
+        public long GetInt64(int ordinal) => _rows.GetInt64(ordinal);
 
         public DateTimeOffset GetDateTimeOffset(int ordinal) => _rows.GetDateTimeOffset(ordinal);
 

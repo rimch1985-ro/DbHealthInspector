@@ -29,6 +29,13 @@ internal sealed class FakeStatementGateway : IPostgreSqlStatementGateway
 
     internal FakeRowReader? LastReader { get; private set; }
 
+    /// <summary>
+    /// Invoked at the start of <see cref="ExecuteReaderAsync"/>, before any reader is produced.
+    /// Lets a test cancel the caller's token at the exact moment the command would be executing,
+    /// with no sleep and no race.
+    /// </summary>
+    internal Action? BeforeExecuteReader { get; set; }
+
     internal static FakeStatementGateway Succeeding(params FakeRowReader[] readers)
     {
         var gateway = new FakeStatementGateway(null, null);
@@ -58,6 +65,10 @@ internal sealed class FakeStatementGateway : IPostgreSqlStatementGateway
         ReaderCallCount++;
         Executed.Add(statement);
         Tokens.Add(cancellationToken);
+
+        // Runs after the call has been recorded but before a reader exists, so a test that
+        // cancels here proves the command was reached and that no reader was ever acquired.
+        BeforeExecuteReader?.Invoke();
 
         if (_readerFailure is not null)
         {
@@ -117,9 +128,17 @@ internal sealed class FakeRowReader : IPostgreSqlRowReader
         bool idleMatches = true) =>
         WithRows(5, [isReadOnly, isolationLevel, statementMatches, lockMatches, idleMatches]);
 
+    /// <summary>
+    /// Invoked with the zero-based index of the row about to be produced, before the read
+    /// advances. Lets a test cancel before the first row, between rows or during the last row
+    /// without any sleep or race.
+    /// </summary>
+    internal Action<int>? BeforeRead { get; set; }
+
     public ValueTask<bool> ReadAsync(CancellationToken cancellationToken)
     {
         ReadTokens.Add(cancellationToken);
+        BeforeRead?.Invoke(_index + 1);
         _index++;
         return ValueTask.FromResult(_index < _rows.Count);
     }
@@ -131,6 +150,8 @@ internal sealed class FakeRowReader : IPostgreSqlRowReader
     public string GetString(int ordinal) => (string)_rows[_index][ordinal]!;
 
     public int GetInt32(int ordinal) => (int)_rows[_index][ordinal]!;
+
+    public long GetInt64(int ordinal) => (long)_rows[_index][ordinal]!;
 
     public DateTimeOffset GetDateTimeOffset(int ordinal) => (DateTimeOffset)_rows[_index][ordinal]!;
 

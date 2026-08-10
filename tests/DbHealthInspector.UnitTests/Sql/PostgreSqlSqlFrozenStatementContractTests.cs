@@ -3,9 +3,9 @@ using DbHealthInspector.PostgreSql.Sql;
 namespace DbHealthInspector.UnitTests.Sql;
 
 /// <summary>
-/// The validator's second layer: the frozen statement contract (GC-DHI-04C-C1, R1-01). Only the
-/// seven canonical (id, kind, SQL, parameters) combinations exist; every mutation of any of the
-/// four parts is rejected.
+/// The validator's second layer: the frozen statement contract (GC-DHI-04C-C1 R1-01,
+/// GC-DHI-04D). Only the eight canonical (id, kind, SQL, parameters) combinations exist; every
+/// mutation of any of the four parts is rejected.
 /// </summary>
 /// <remarks>
 /// Mutations are addressed by name rather than by literal SQL, so no statement text — canonical or
@@ -15,6 +15,12 @@ public sealed class PostgreSqlSqlFrozenStatementContractTests
 {
     private static readonly PostgreSqlSqlParameterDefinition[] NoParameters = [];
 
+    private static PostgreSqlSqlParameterDefinition[] TwoSchemaFilters() =>
+    [
+        new(1, PostgreSqlSqlParameterType.TextArray, "included schema names"),
+        new(2, PostgreSqlSqlParameterType.TextArray, "excluded schema names"),
+    ];
+
     private static PostgreSqlSqlParameterDefinition[] ThreeTimeouts() =>
     [
         new(1, PostgreSqlSqlParameterType.Int32, "statement-timeout milliseconds"),
@@ -22,7 +28,7 @@ public sealed class PostgreSqlSqlFrozenStatementContractTests
         new(3, PostgreSqlSqlParameterType.Int32, "idle-in-transaction-timeout milliseconds"),
     ];
 
-    /// <summary>The seven canonical definitions, exactly as the inventory declares them.</summary>
+    /// <summary>The eight canonical definitions, exactly as the inventory declares them.</summary>
     private static (PostgreSqlSqlStatementId Id, PostgreSqlSqlCommandKind Kind, string Sql, PostgreSqlSqlParameterDefinition[] Parameters)[] Canonical() =>
     [
         (PostgreSqlSqlStatementId.SetTransactionReadOnly, PostgreSqlSqlCommandKind.SetTransactionReadOnly,
@@ -39,6 +45,8 @@ public sealed class PostgreSqlSqlFrozenStatementContractTests
             PostgreSqlSqlInventory.CheckUsageStatisticsAccessSql, NoParameters),
         (PostgreSqlSqlStatementId.ReadStatisticsReset, PostgreSqlSqlCommandKind.SelectStatistics,
             PostgreSqlSqlInventory.ReadStatisticsResetSql, NoParameters),
+        (PostgreSqlSqlStatementId.ReadTableSnapshots, PostgreSqlSqlCommandKind.SelectTableMetadata,
+            PostgreSqlSqlInventory.ReadTableSnapshotsSql, TwoSchemaFilters()),
     ];
 
     private static void Validate(
@@ -56,21 +64,21 @@ public sealed class PostgreSqlSqlFrozenStatementContractTests
         params PostgreSqlSqlParameterDefinition[] parameters) =>
         Assert.Throws<PostgreSqlSqlSafetyException>(() => Validate(id, kind, sql, parameters));
 
-    // --- Positive: exactly the seven canonical definitions ------------------------------------
+    // --- Positive: exactly the eight canonical definitions ------------------------------------
 
     [Fact]
-    public void EverySevenCanonicalDefinition_IsAccepted()
+    public void EveryEightCanonicalDefinition_IsAccepted()
     {
         foreach ((PostgreSqlSqlStatementId id, PostgreSqlSqlCommandKind kind, string sql, PostgreSqlSqlParameterDefinition[] parameters) in Canonical())
         {
             Validate(id, kind, sql, parameters);
         }
 
-        Assert.Equal(7, Canonical().Length);
+        Assert.Equal(8, Canonical().Length);
     }
 
     [Fact]
-    public void AcrossEveryIdKindAndSqlCombination_ExactlySevenAreAccepted()
+    public void AcrossEveryIdKindAndSqlCombination_ExactlyEightAreAccepted()
     {
         var canonical = Canonical();
         var accepted = new List<(PostgreSqlSqlStatementId Id, PostgreSqlSqlCommandKind Kind, int SqlIndex)>();
@@ -94,8 +102,11 @@ public sealed class PostgreSqlSqlFrozenStatementContractTests
             }
         }
 
-        // 7 ids x 6 kinds x 7 SQL texts = 294 combinations; exactly seven survive.
-        Assert.Equal(7, accepted.Count);
+        // 8 ids x 7 kinds x 8 SQL texts = 448 combinations; exactly eight survive.
+        Assert.Equal(448, Enum.GetValues<PostgreSqlSqlStatementId>().Length
+            * Enum.GetValues<PostgreSqlSqlCommandKind>().Length
+            * canonical.Length);
+        Assert.Equal(8, accepted.Count);
 
         for (var index = 0; index < canonical.Length; index++)
         {
@@ -135,6 +146,15 @@ public sealed class PostgreSqlSqlFrozenStatementContractTests
         { nameof(PostgreSqlSqlStatementId.ApplyLocalTimeouts), nameof(PostgreSqlSqlCommandKind.SelectVerification) },
         { nameof(PostgreSqlSqlStatementId.VerifySessionState), nameof(PostgreSqlSqlCommandKind.SelectConfiguration) },
         { nameof(PostgreSqlSqlStatementId.SetTransactionReadOnly), nameof(PostgreSqlSqlCommandKind.SelectVerification) },
+        { nameof(PostgreSqlSqlStatementId.ReadTableSnapshots), nameof(PostgreSqlSqlCommandKind.SelectCapabilityCheck) },
+        { nameof(PostgreSqlSqlStatementId.ReadTableSnapshots), nameof(PostgreSqlSqlCommandKind.SelectStatistics) },
+        { nameof(PostgreSqlSqlStatementId.ReadTableSnapshots), nameof(PostgreSqlSqlCommandKind.SelectServerIdentity) },
+        { nameof(PostgreSqlSqlStatementId.ReadTableSnapshots), nameof(PostgreSqlSqlCommandKind.SelectConfiguration) },
+        { nameof(PostgreSqlSqlStatementId.ReadTableSnapshots), nameof(PostgreSqlSqlCommandKind.SelectVerification) },
+        { nameof(PostgreSqlSqlStatementId.ReadServerIdentity), nameof(PostgreSqlSqlCommandKind.SelectTableMetadata) },
+        { nameof(PostgreSqlSqlStatementId.CheckCatalogMetadataAccess), nameof(PostgreSqlSqlCommandKind.SelectTableMetadata) },
+        { nameof(PostgreSqlSqlStatementId.CheckUsageStatisticsAccess), nameof(PostgreSqlSqlCommandKind.SelectTableMetadata) },
+        { nameof(PostgreSqlSqlStatementId.ReadStatisticsReset), nameof(PostgreSqlSqlCommandKind.SelectTableMetadata) },
     };
 
     [Theory]
@@ -365,6 +385,138 @@ public sealed class PostgreSqlSqlFrozenStatementContractTests
         Assert.NotEqual(PostgreSqlSqlInventory.ReadStatisticsResetSql, mutated);
         AssertRejected(
             PostgreSqlSqlStatementId.ReadStatisticsReset, PostgreSqlSqlCommandKind.SelectStatistics, mutated);
+    }
+
+    private static Dictionary<string, string> TableSnapshotMutations()
+    {
+        string sql = PostgreSqlSqlInventory.ReadTableSnapshotsSql;
+        Dictionary<string, string> mutations = StructuralMutations(sql);
+
+        // Catalog table, join and correlated existence test.
+        mutations["ChangedCatalogTable"] = sql.Replace("pg_catalog.pg_class AS relation", "pg_catalog.pg_foreign_table AS relation", StringComparison.Ordinal);
+        mutations["ChangedJoinTarget"] = sql.Replace("INNER JOIN pg_catalog.pg_namespace", "INNER JOIN pg_catalog.pg_authid", StringComparison.Ordinal);
+        mutations["ChangedJoinPredicate"] = sql.Replace("ON namespace.oid = relation.relnamespace", "ON namespace.oid = relation.reltablespace", StringComparison.Ordinal);
+        mutations["ChangedJoinType"] = sql.Replace("INNER JOIN", "LEFT JOIN", StringComparison.Ordinal);
+        mutations["ChangedConstraintTable"] = sql.Replace("pg_catalog.pg_constraint AS constraint_record", "pg_catalog.pg_index AS constraint_record", StringComparison.Ordinal);
+
+        // Mandatory system-schema filters.
+        mutations["RemovedCatalogFilter"] = sql.Replace("  AND namespace.nspname <> 'pg_catalog'\n", "", StringComparison.Ordinal);
+        mutations["RemovedInformationSchemaFilter"] = sql.Replace("  AND namespace.nspname <> 'information_schema'\n", "", StringComparison.Ordinal);
+        mutations["RemovedToastFilter"] = sql.Replace("  AND namespace.nspname NOT LIKE 'pg_toast%'\n", "", StringComparison.Ordinal);
+        mutations["RemovedTempFilter"] = sql.Replace("  AND namespace.nspname NOT LIKE 'pg_temp_%'\n", "", StringComparison.Ordinal);
+
+        // Relation-kind allowlist.
+        mutations["AddedIndexRelkind"] = sql.Replace("IN ('r', 'p', 'v', 'm', 'f')", "IN ('r', 'p', 'v', 'm', 'f', 'i')", StringComparison.Ordinal);
+        mutations["AddedSequenceRelkind"] = sql.Replace("IN ('r', 'p', 'v', 'm', 'f')", "IN ('r', 'p', 'v', 'm', 'f', 'S')", StringComparison.Ordinal);
+        mutations["RemovedForeignRelkind"] = sql.Replace("IN ('r', 'p', 'v', 'm', 'f')", "IN ('r', 'p', 'v', 'm')", StringComparison.Ordinal);
+        mutations["ChangedSizedRelkinds"] = sql.Replace("relation.relkind IN ('r', 'm', 'p')", "relation.relkind IN ('r', 'm')", StringComparison.Ordinal);
+
+        // Parameters.
+        mutations["SwappedParameters"] = sql
+            .Replace("$1::text[]", "$9::text[]", StringComparison.Ordinal)
+            .Replace("$2::text[]", "$1::text[]", StringComparison.Ordinal)
+            .Replace("$9::text[]", "$2::text[]", StringComparison.Ordinal);
+        mutations["MissingIncludeParameter"] = sql.Replace("$1::text[]", "$2::text[]", StringComparison.Ordinal);
+        mutations["ExtraParameter"] = sql.Replace("= ANY($2::text[])", "= ANY($2::text[]) OR namespace.nspname = $3", StringComparison.Ordinal);
+        mutations["ChangedArrayType"] = sql.Replace("::text[]", "::name[]", StringComparison.Ordinal);
+        mutations["ConcatenatedSchema"] = sql.Replace("namespace.nspname::text = ANY($1::text[])", "namespace.nspname = 'public'", StringComparison.Ordinal);
+
+        // Result semantics.
+        mutations["ChangedPrimaryKeyPredicate"] = sql.Replace("constraint_record.contype = 'p'", "constraint_record.contype = 'u'", StringComparison.Ordinal);
+        mutations["ChangedPrimaryKeyCorrelation"] = sql.Replace("constraint_record.conrelid = relation.oid", "constraint_record.conindid = relation.oid", StringComparison.Ordinal);
+        mutations["ChangedSizeFunction"] = sql.Replace("pg_catalog.pg_table_size(relation.oid)", "pg_catalog.pg_relation_size(relation.oid)", StringComparison.Ordinal);
+        mutations["AggregatedRootSize"] = sql.Replace("pg_catalog.pg_total_relation_size(relation.oid)", "pg_catalog.pg_total_relation_size(relation.oid) + 1", StringComparison.Ordinal);
+        mutations["ChangedEstimateGuard"] = sql.Replace("OR relation.reltuples < 0", "OR relation.reltuples < -1", StringComparison.Ordinal);
+        mutations["ChangedOrderBy"] = sql.Replace("ORDER BY\n    namespace.nspname,\n    relation.relname", "ORDER BY\n    relation.relname,\n    namespace.nspname", StringComparison.Ordinal);
+        mutations["RemovedOrderBy"] = sql.Replace("\nORDER BY\n    namespace.nspname,\n    relation.relname", "", StringComparison.Ordinal);
+        mutations["CountAggregate"] = sql.Replace("relation.relispartition\n        AS is_partition", "COUNT(*)\n        AS is_partition", StringComparison.Ordinal);
+
+        // GC-DHI-04E index SQL must never be accepted under D001's identity.
+        mutations["IndexStatement"] = """
+            SELECT
+                namespace.nspname::text
+                    AS schema_name,
+                index_relation.relname::text
+                    AS index_name
+            FROM pg_catalog.pg_index AS index_record
+            INNER JOIN pg_catalog.pg_class AS index_relation
+                ON index_relation.oid = index_record.indexrelid
+            INNER JOIN pg_catalog.pg_namespace AS namespace
+                ON namespace.oid = index_relation.relnamespace
+            """;
+
+        return mutations;
+    }
+
+    public static TheoryData<string> TableSnapshotMutationNames() => [.. TableSnapshotMutations().Keys];
+
+    [Theory]
+    [MemberData(nameof(TableSnapshotMutationNames))]
+    public void D001_RejectsEveryMutation(string mutation)
+    {
+        string mutated = TableSnapshotMutations()[mutation];
+
+        Assert.NotEqual(PostgreSqlSqlInventory.ReadTableSnapshotsSql, mutated);
+        AssertRejected(
+            PostgreSqlSqlStatementId.ReadTableSnapshots,
+            PostgreSqlSqlCommandKind.SelectTableMetadata,
+            mutated,
+            TwoSchemaFilters());
+    }
+
+    [Fact]
+    public void D001_RejectsAWrongParameterCount()
+    {
+        // One declaration, none at all, and three: only the exact pair is authorized.
+        AssertRejected(
+            PostgreSqlSqlStatementId.ReadTableSnapshots, PostgreSqlSqlCommandKind.SelectTableMetadata,
+            PostgreSqlSqlInventory.ReadTableSnapshotsSql,
+            new PostgreSqlSqlParameterDefinition(1, PostgreSqlSqlParameterType.TextArray, "only one"));
+
+        AssertRejected(
+            PostgreSqlSqlStatementId.ReadTableSnapshots, PostgreSqlSqlCommandKind.SelectTableMetadata,
+            PostgreSqlSqlInventory.ReadTableSnapshotsSql);
+
+        AssertRejected(
+            PostgreSqlSqlStatementId.ReadTableSnapshots, PostgreSqlSqlCommandKind.SelectTableMetadata,
+            PostgreSqlSqlInventory.ReadTableSnapshotsSql,
+            [.. TwoSchemaFilters(), new PostgreSqlSqlParameterDefinition(3, PostgreSqlSqlParameterType.TextArray, "extra")]);
+    }
+
+    [Fact]
+    public void D001_RejectsAWrongParameterType()
+    {
+        // Now that two parameter types exist, the frozen contract's type comparison is live.
+        AssertRejected(
+            PostgreSqlSqlStatementId.ReadTableSnapshots, PostgreSqlSqlCommandKind.SelectTableMetadata,
+            PostgreSqlSqlInventory.ReadTableSnapshotsSql,
+            new PostgreSqlSqlParameterDefinition(1, PostgreSqlSqlParameterType.Int32, "wrong type"),
+            new PostgreSqlSqlParameterDefinition(2, PostgreSqlSqlParameterType.TextArray, "excluded schema names"));
+
+        AssertRejected(
+            PostgreSqlSqlStatementId.ReadTableSnapshots, PostgreSqlSqlCommandKind.SelectTableMetadata,
+            PostgreSqlSqlInventory.ReadTableSnapshotsSql,
+            new PostgreSqlSqlParameterDefinition(1, PostgreSqlSqlParameterType.TextArray, "included schema names"),
+            new PostgreSqlSqlParameterDefinition(2, PostgreSqlSqlParameterType.Int32, "wrong type"));
+    }
+
+    [Fact]
+    public void B002AndB003_RejectTextArrayDeclarations()
+    {
+        // The timeout statements keep their exact Int32 contract.
+        PostgreSqlSqlParameterDefinition[] textArrays =
+        [
+            new(1, PostgreSqlSqlParameterType.TextArray, "wrong"),
+            new(2, PostgreSqlSqlParameterType.TextArray, "wrong"),
+            new(3, PostgreSqlSqlParameterType.TextArray, "wrong"),
+        ];
+
+        AssertRejected(
+            PostgreSqlSqlStatementId.ApplyLocalTimeouts, PostgreSqlSqlCommandKind.SelectConfiguration,
+            PostgreSqlSqlInventory.ApplyLocalTimeoutsSql, textArrays);
+        AssertRejected(
+            PostgreSqlSqlStatementId.VerifySessionState, PostgreSqlSqlCommandKind.SelectVerification,
+            PostgreSqlSqlInventory.VerifySessionStateSql, textArrays);
     }
 
     // --- The lexical layer, exercised by mutating canonical statements -------------------------
