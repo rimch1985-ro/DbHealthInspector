@@ -3,10 +3,11 @@
 **Gate:** GC-DHI-04E — Index Snapshot Query and Mapping  
 **Backlog:** PG-05 — Implement index snapshot query  
 **Definition date:** 2026-08-10  
+**D1 correction date:** 2026-08-10  
 **Status:** Defined  
 **Predecessor:** GC-DHI-04D approved and closed  
 **Implementation:** not authorized  
-**Verdict:** DEFINED — AWAITING HUMAN IMPLEMENTATION AUTHORIZATION  
+**Verdict:** GC-DHI-04E DEFINITION CORRECTED — AWAITING HUMAN IMPLEMENTATION AUTHORIZATION  
 
 ---
 
@@ -21,6 +22,12 @@ resource, test, dependency, workflow, snapshot provider, diagnostic rule, CLI
 behavior or reporting behavior. PG-05 is defined but not implemented. Human
 review, explicit human implementation authorization and a separate Claude Code
 prompt remain mandatory.
+
+Human review identified D1-01: the original frozen E001 preserved the
+operator-class namespace and name but discarded per-key operator-class
+options. This correction resolves D1-01 without changing Core or implementing
+PG-05. The corrected contract preserves the exact ordered option array inside
+the existing `IndexKeyPartSnapshot.OperatorClass` string identity.
 
 ## 2. Preserved Core contract
 
@@ -79,14 +86,31 @@ Only official PostgreSQL 15 and 18 documentation is normative:
 | `pg_opclass` | [15](https://www.postgresql.org/docs/15/catalog-pg-opclass.html) | [18](https://www.postgresql.org/docs/18/catalog-pg-opclass.html) |
 | `pg_stat_all_indexes` | [15](https://www.postgresql.org/docs/15/monitoring-stats.html#MONITORING-PG-STAT-ALL-INDEXES-VIEW) | [18](https://www.postgresql.org/docs/18/monitoring-stats.html#MONITORING-PG-STAT-ALL-INDEXES-VIEW) |
 | catalog/property functions | [15](https://www.postgresql.org/docs/15/functions-info.html) | [18](https://www.postgresql.org/docs/18/functions-info.html) |
+| `CREATE INDEX` operator-class parameters | [15](https://www.postgresql.org/docs/15/sql-createindex.html) | [18](https://www.postgresql.org/docs/18/sql-createindex.html) |
+| array equality and ordering | [15](https://www.postgresql.org/docs/15/functions-array.html) | [18](https://www.postgresql.org/docs/18/functions-array.html) |
 | relation size | [15](https://www.postgresql.org/docs/15/functions-admin.html) | [18](https://www.postgresql.org/docs/18/functions-admin.html) |
 | deterministic invalid partitioned index | [15](https://www.postgresql.org/docs/15/ddl-partitioning.html) | [18](https://www.postgresql.org/docs/18/ddl-partitioning.html) |
+| `CompareOpclassOptions` source | [REL_15_STABLE](https://github.com/postgres/postgres/blob/REL_15_STABLE/src/backend/commands/indexcmds.c#L349-L384) | [REL_18_STABLE](https://github.com/postgres/postgres/blob/REL_18_STABLE/src/backend/commands/indexcmds.c#L361-L396) |
 
 The reviewed functions are exactly `pg_get_indexdef`, `pg_get_expr`,
 `pg_index_column_has_property` and `pg_relation_size`. PostgreSQL documents
 non-pretty deparsing as the more stable form and documents `pg_class.relkind`
 `i` and `I`, key-before-INCLUDE ordering, expression zeroes in `indkey`, the
 per-key collation and operator-class vectors, and independent validity flags.
+
+`CREATE INDEX` permits `opclass (opclass_parameter = value, ...)` per key.
+`pg_attribute` documents `attoptions` as a nullable `text[]` of
+`keyword=value` strings and includes rows for indexes. `pg_options_to_table`
+can split that array into name/value rows, but E001 deliberately does not use
+it: direct typed-array retrieval preserves nullability and storage order
+without adding a function privilege, a second result shape or client parsing
+of PostgreSQL array syntax.
+
+The official `CompareOpclassOptions` source obtains each index attribute's
+options and compares non-null `text[]` values through `array_eq` under C
+collation. PostgreSQL array comparison is element-by-element in storage order.
+Consequently, null versus non-null, element bytes and element order are all
+structural; alphabetical sorting is forbidden.
 
 ## 4. Definition-time PostgreSQL 18.4 probes
 
@@ -115,8 +139,26 @@ Observed results:
 - the exact future C002 privilege expression evaluated to true.
 - the exact E001 and E002 statements prepared and executed successfully.
 
-The disposable container and all probe objects were removed. No fixture or
-generated file remains.
+A second disposable D1 probe used built-in BRIN operator classes and proved:
+
+- two `int4_minmax_multi_ops` indexes differing only by
+  `values_per_range=32` versus `values_per_range=64` had different
+  `attoptions` arrays;
+- two `int4_bloom_ops` indexes with identical option name/value pairs in
+  opposite orders retained those opposite array orders and compared unequal;
+- each produced array was one-dimensional with lower bound one;
+- `pg_options_to_table` emitted the elements in stored order; and
+- `pg_get_indexdef(index_oid, 1, false)` returned only the key `id`, while the
+  full definition contained the options. The per-key overload therefore
+  cannot replace direct `attoptions` retrieval;
+- applying the frozen encoding yielded distinct values for
+  `values_per_range=32` and `values_per_range=64`, and for the two opposite
+  option orders; and
+- the corrected future C002, E001 and byte-identical E002 statements prepared
+  and executed successfully, with E001 returning the typed options array.
+
+Both disposable container runs and all probe objects were removed. No fixture
+or generated file remains.
 
 ## 5. E001/E002 architecture
 
@@ -195,8 +237,9 @@ pg_temp_*
 
 C002 keeps the same statement ID, `SelectCapabilityCheck` kind, zero
 parameters and one-row/one-non-null-Boolean result. It is the current closed
-C002 plus only the four functions called by E001. Existing GC-DHI-04D checks
-remain unchanged.
+C002 plus only the four functions called by E001. D1 reads
+`pg_attribute.attoptions` directly and therefore adds no function call or
+privilege check. Existing GC-DHI-04D checks remain unchanged.
 
 ```sql
 SELECT
@@ -324,6 +367,12 @@ SELECT
         AS operator_class_schema,
     operator_class.opcname::text
         AS operator_class_name,
+    CASE
+        WHEN index_attribute.attnum <= index_record.indnkeyatts
+            THEN index_attribute.attoptions
+        ELSE NULL::text[]
+    END
+        AS operator_class_options,
     CASE
         WHEN index_attribute.attnum <= index_record.indnkeyatts
             THEN pg_catalog.pg_index_column_has_property(
@@ -456,9 +505,19 @@ ORDER BY
     index_attribute.attnum
 ```
 
-E001 has exactly two `TextArray` parameters in positions 1 and 2. It contains
-no statistics view, business-row read, aggregate, dynamic SQL, identifier
-interpolation or descendant traversal.
+Deterministic E001 text identity uses UTF-8 without BOM, LF separators and no
+terminal newline inside the fence:
+
+```text
+Exact length: 6262 bytes
+SHA-256: d45b8ed1e0d842b1474839a3beadf6d1a0d4233cfa847c3887c41cfd4b1184d7
+```
+
+E001 has exactly two `TextArray` parameters in positions 1 and 2. Its new
+output column reads the already joined `pg_attribute.attoptions` directly; no
+new SQL function or parameter type is introduced. E001 contains no statistics
+view, business-row read, aggregate, dynamic SQL, identifier interpolation or
+descendant traversal.
 
 ## 10. Exact E002 SQL
 
@@ -492,13 +551,21 @@ ORDER BY
     statistics.indexrelname
 ```
 
+Deterministic E002 text identity uses the same UTF-8/LF/no-terminal-newline
+measurement and remains byte-identical to G0:
+
+```text
+Exact length: 737 bytes
+SHA-256: fe8f23a5dff2cdfb8d08acf4fb7f7a3f90aef4b7e9eee4b678cde8c260624919
+```
+
 E002 has the same two `TextArray` parameters. It returns only `idx_scan`; it
 does not return `idx_tup_read`, `idx_tup_fetch` or `last_idx_scan`.
 
 ## 11. E001 exact multirecord shape
 
 E001 returns one row per index attribute, including keys and INCLUDE
-attributes. Each row has exactly 30 columns:
+attributes. Each row has exactly 31 columns:
 
 | Ordinal | Value | CLR type | Nullable |
 |---:|---|---|---|
@@ -518,24 +585,27 @@ attributes. Each row has exactly 30 columns:
 | 13 | Collation name | String | Yes |
 | 14 | Operator-class schema | String | Yes |
 | 15 | Operator-class name | String | Yes |
-| 16 | Orderable | Boolean | INCLUDE only |
-| 17 | Ascending | Boolean | INCLUDE only |
-| 18 | Descending | Boolean | INCLUDE only |
-| 19 | Nulls first | Boolean | INCLUDE only |
-| 20 | Nulls last | Boolean | INCLUDE only |
-| 21 | Partial predicate | String | Yes |
-| 22 | Unique | Boolean | No |
-| 23 | Nulls not distinct | Boolean | non-unique only |
-| 24 | Primary key | Boolean | No |
-| 25 | Backs constraint | Boolean | No |
-| 26 | Valid | Boolean | No |
-| 27 | Ready | Boolean | No |
-| 28 | Live | Boolean | No |
-| 29 | Size bytes | Int64 | No |
+| 16 | Operator-class options | String[] | Yes |
+| 17 | Orderable | Boolean | No for key; Yes for INCLUDE |
+| 18 | Ascending | Boolean | No for key; Yes for INCLUDE |
+| 19 | Descending | Boolean | No for key; Yes for INCLUDE |
+| 20 | Nulls first | Boolean | No for key; Yes for INCLUDE |
+| 21 | Nulls last | Boolean | No for key; Yes for INCLUDE |
+| 22 | Partial predicate | String | Yes |
+| 23 | Unique | Boolean | No |
+| 24 | Nulls not distinct | Boolean | Yes for non-unique |
+| 25 | Primary key | Boolean | No |
+| 26 | Backs constraint | Boolean | No |
+| 27 | Valid | Boolean | No |
+| 28 | Ready | Boolean | No |
+| 29 | Live | Boolean | No |
+| 30 | Size bytes | Int64 | No |
 
-“INCLUDE only” means the field must be null exactly when `IsKey=false` and
-must be non-null when `IsKey=true`. `NullsNotDistinct` must be non-null exactly
-when `IsUnique=true`.
+For ordinals 17–21, every key row must contain a non-null Boolean and every
+INCLUDE row must contain SQL null. Ordinal 16 is SQL null for INCLUDE and for a
+key without explicit operator-class options; when non-null on a key it is a
+typed ordered array. `NullsNotDistinct` must be non-null exactly when
+`IsUnique=true`.
 
 Zero indexes is valid. A structural row failure abandons the entire read.
 
@@ -566,9 +636,9 @@ one exact ordering state. An expression key has null `ColumnName`, non-blank
 `Expression` and the same key metadata. Exactly one is present.
 
 An INCLUDE row must resolve to one non-blank table column, must have null
-expression, collation, operator-class and ordering-property fields, and never
-creates an `IndexKeyPartSnapshot`. INCLUDE order is preserved. Contradictory
-rows fail closed.
+expression, collation, operator-class identity, operator-class options and
+ordering-property fields, and never creates an `IndexKeyPartSnapshot`. INCLUDE
+order is preserved. Contradictory rows fail closed.
 
 ## 14. Expression and predicate mapping
 
@@ -592,23 +662,60 @@ pg_get_expr(indpred, table_oid, false)
 Non-partial indexes map null. Partial indexes require a non-blank deparsed
 predicate. Raw `pg_node_tree` values never cross the SQL boundary.
 
-## 15. Access method, collation and operator class
+## 15. Access method, collation and operator-class structural identity
 
-`pg_am.amname` is preserved exactly. Built-in methods are test scenarios, not
-an allowlist; an unknown but valid access method name is retained.
+There is no productive access-method name allowlist. `pg_am.amname` is
+preserved exactly, including a valid name unknown to the product. This does not
+relax shape safety: every key must still provide the generic structural state
+required by Core. A null or unknown required ordering property that cannot be
+represented faithfully fails with the fixed generic index-metadata error.
 
-Collation and operator-class identity are constructed in C# from the separate
-catalog namespace and object-name columns as an always-qualified, always-
-quoted value:
+Collation and the base operator-class identity are constructed in C# from the
+separate catalog namespace and object-name columns as an always-qualified,
+always-quoted value:
 
 ```text
 "<schema with embedded quotes doubled>"."<name with embedded quotes doubled>"
 ```
 
-This representation is ordinal, stable, search-path-independent and
+This base representation is ordinal, stable, search-path-independent and
 unambiguous and is never reused as a SQL identifier. Collation is null when
 `indcollation` is zero. Operator class is required for every key. Both are
 null for INCLUDE rows. A half-present schema/name pair fails.
+
+`OperatorClass` additionally preserves the exact nullable ordered
+`attoptions` array. The encoding is frozen as:
+
+```text
+SQL NULL options:
+<qualified-operator-class-identity>
+
+non-NULL options:
+<qualified-operator-class-identity>|options[<count>;<length>:<value>...]
+```
+
+`count` and each `length` use invariant unsigned decimal without leading
+zeroes. `length` is the exact .NET `String.Length` in UTF-16 code units. Values
+are appended verbatim in stored array order, without trimming, Unicode
+normalization, semantic parsing or sorting. The element count plus each length
+prefix makes the representation injective even when an option contains `:`,
+`]` or the literal marker. Embedded double quotes in namespace/name remain
+doubled by the qualified-identity rule.
+
+Examples:
+
+```text
+"pg_catalog"."int4_minmax_multi_ops"
+"pg_catalog"."int4_minmax_multi_ops"|options[1;19:values_per_range=32]
+```
+
+A non-null empty array encodes as `|options[0;]` and therefore remains distinct
+from SQL null, matching PostgreSQL's compatibility distinction. Null array
+elements fail closed. The array and the temporary encoding inputs never enter
+Core separately; only the resulting canonical string is supplied to the
+existing `IndexKeyPartSnapshot.OperatorClass` property. Thus different option
+values or stored option orders cannot collapse into structural equality, and
+Core remains unchanged.
 
 ## 16. Sort direction and null ordering
 
@@ -620,7 +727,8 @@ exactly one of ascending/descending = true
 exactly one of nulls_first/nulls_last = true
 ```
 
-The mapper transfers those values directly to the two Core enums.
+All five property columns must first be non-null. The mapper transfers the
+valid direction/null-order values directly to the two Core enums.
 
 For a non-orderable key, PostgreSQL 18.4 returned all five properties false
 for Hash, GIN, GiST, SP-GiST and BRIN. The mapper requires exactly that tuple
@@ -637,7 +745,9 @@ because PostgreSQL exposes no alternate ASC/DESC or NULLS syntax state for a
 non-orderable key, the access method remains in structural identity, all
 other structural fields remain preserved, and two distinct server states are
 not collapsed. Any other non-orderable property tuple fails rather than being
-invented silently.
+invented silently. In particular, null/unknown in any required key property is
+not converted to `Ascending`, `Descending`, `First` or `Last`; it fails with
+the fixed generic index-metadata error.
 
 ## 17. Uniqueness and constraint association
 
@@ -742,6 +852,22 @@ It accepts no SQL, statement ID, dictionary, gateway or resource. It executes
 E001 exactly once, then E002 exactly once only when the Boolean is true, and
 returns complete snapshots. The callback remains explicitly typed.
 
+The future row seam adds exactly one provider-neutral typed accessor to both
+`IPostgreSqlRowSource` and `IPostgreSqlRowReader`:
+
+```text
+string[] GetStringArray(int ordinal)
+```
+
+The accessor is called only after `IsNull(ordinal)` is false and the provider
+implementation uses its typed `string[]` read. The mapper immediately makes a
+defensive copy before advancing the reader, rejects null elements and builds
+the canonical `OperatorClass` string. No array, Npgsql type or mutable
+collection crosses into Core or the final result. Logically ordinal 16 is
+`string[]?`; SQL null and a non-null empty array remain distinguishable. This
+output accessor does not add a SQL parameter type: inventory parameter types
+remain exactly `Int32` and `TextArray`.
+
 GC-DHI-04E does not claim to enforce C001–C004 sequencing. Real tests compose:
 
 ```text
@@ -809,6 +935,10 @@ Future PostgreSQL 18.4 verification covers at least:
 - expression and mixed column/expression keys;
 - partial predicate;
 - explicit collation and non-default operator class;
+- built-in BRIN indexes with the same operator-class identity and different
+  option values;
+- built-in BRIN indexes with identical option pairs in opposite stored order,
+  proving distinct canonical `OperatorClass` values;
 - ASC/DESC and NULLS FIRST/LAST;
 - Hash, GIN, GiST, SP-GiST and BRIN where constructible without an external
   extension, including at least one non-orderable method;
@@ -854,7 +984,10 @@ unexpected INCLUDE expression or key metadata
 invalid ColumnName/Expression XOR
 half-present collation or operator-class identity
 missing operator class
+wrong operator-class-options CLR type or null array element
+operator-class options on an INCLUDE row
 impossible ordering-property tuple
+null/unknown required ordering property on a key
 negative size or scan count
 contradictory primary/unique/constraint state
 duplicate final index or E002 identity
@@ -916,7 +1049,8 @@ PG-05 implementation may start only when all are true:
 4. E001 and E002 exact SQL remain frozen.
 5. The exact C002 expansion remains frozen and C003 unchanged.
 6. Result shape, grouping, key/INCLUDE and merge contracts remain frozen.
-7. Ordering normalization and qualified identities remain accepted.
+7. Ordering normalization, qualified identities and the ordered length-prefixed
+   operator-class-options encoding remain accepted.
 8. Partitioned-index and invalid-index policies remain accepted.
 9. Readiness/liveness limitation and cancellation/cleanup contracts remain
    accepted.
@@ -933,9 +1067,10 @@ Exit requires:
 3. ten statements, eight kinds, two parameter types and ten frozen contracts.
 4. validator matrix 800 with exactly ten accepted.
 5. reused schema filter and permanent system exclusions.
-6. strict 30-column E001 and four-column E002 shapes.
+6. strict 31-column E001 and four-column E002 shapes.
 7. ordered keys and INCLUDE columns, expressions and predicates.
-8. qualified collation/operator-class identities and access-method preservation.
+8. qualified collation/operator-class identities, exact ordered opclass options
+   and access-method preservation.
 9. exact ordering/null semantics and NullsNotDistinct policy.
 10. PK/constraint and independent valid/ready/live mapping.
 11. direct physical size, zero virtual size and no aggregation.
@@ -963,14 +1098,14 @@ made before implementation. This definition found no such blocker.
 
 ## 33. Definition validation and next action
 
-The exact E001/E002 SQL and future C002 were reconciled with the existing
-inventory and typed boundary, reviewed for PostgreSQL 15–18 catalog/function
-compatibility, and syntax/probe verified on the pinned PostgreSQL 18.4 image.
-Only the four canonical governance documents may change in this definition
-commit.
+The corrected exact E001, byte-identical E002 and unchanged future C002 were
+reconciled with the existing inventory and typed boundary, reviewed against
+PostgreSQL 15–18 documentation and official source, and syntax/probe verified
+on the pinned PostgreSQL 18.4 image. Only the four canonical governance
+documents may change in this correction commit.
 
 ```text
-GC-DHI-04E DEFINED — AWAITING HUMAN IMPLEMENTATION AUTHORIZATION
-Await human review of the integrated GC-DHI-04E definition.
+GC-DHI-04E DEFINITION CORRECTED — AWAITING HUMAN IMPLEMENTATION AUTHORIZATION
+Human review of the corrected GC-DHI-04E definition.
 No GC-DHI-04E implementation is authorized.
 ```

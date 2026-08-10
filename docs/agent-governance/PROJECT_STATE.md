@@ -2,14 +2,15 @@
 
 **Last updated:** 2026-08-10  
 **GC-DHI-04E definition date:** 2026-08-10  
+**GC-DHI-04E D1 correction date:** 2026-08-10  
 **GC-DHI-04D integration authorization date:** 2026-08-10  
 **GC-DHI-04D closure date:** 2026-08-10  
 **GC-DHI-04C integration authorization date:** 2026-08-01  
 **GC-DHI-04C closure date:** 2026-08-01  
 **GC-DHI-04B closure date:** 2026-08-01  
 **Current phase:** PostgreSQL Metadata Adapter  
-**Current gate:** GC-DHI-04E defined — awaiting human implementation authorization  
-**Authorized next action:** human review of the integrated GC-DHI-04E definition  
+**Current gate:** GC-DHI-04E definition corrected — awaiting human implementation authorization  
+**Authorized next action:** human review of the corrected GC-DHI-04E definition  
 **PG-01:** completed  
 **PG-02:** completed  
 **PG-03:** completed  
@@ -20,7 +21,7 @@
 **GC-DHI-04B:** approved and closed  
 **GC-DHI-04C:** approved and closed  
 **GC-DHI-04D:** approved and closed  
-**GC-DHI-04E:** definition integrated; implementation not authorized or started  
+**GC-DHI-04E:** corrected definition integrated; implementation not authorized or started  
 **GC-DHI-04F:** unauthorized, unimplemented and not started  
 **GC-DHI-03B closure date:** 2026-07-30  
 **GC-DHI-04A closure date:** 2026-07-31  
@@ -96,13 +97,15 @@ GC-DHI-04E is now defined by `docs/gates/GC-DHI-04E_DEFINITION.md`. The future
 architecture separates required E001 structural index metadata from optional
 E002 usage statistics, freezes exact E001/E002 and future C002 SQL, reuses the
 existing schema filter, retains C003 unchanged and resolves index grouping,
-ordering, qualified identity, partitioned-index, invalid-index, cancellation
-and cleanup policies. The future inventory is ten statements, eight command
-kinds, two parameter types and ten frozen contracts; the future validator
-accepts ten of 800 combinations.
+ordering, qualified identity, ordered operator-class options,
+partitioned-index, invalid-index, cancellation and cleanup policies. D1-01 was
+corrected by reading `pg_attribute.attoptions` as an ordered typed array and
+encoding it injectively in the existing Core `OperatorClass` string. The
+future inventory is ten statements, eight command kinds, two parameter types
+and ten frozen contracts; the future validator accepts ten of 800 combinations.
 
 PG-05 is defined but not implemented or completed. The next authorized action
-is human review of the integrated GC-DHI-04E definition. GC-DHI-04E
+is human review of the corrected GC-DHI-04E definition. GC-DHI-04E
 implementation remains unauthorized, unimplemented and not started.
 GC-DHI-04F remains unauthorized, unimplemented and not started. PG-06 full
 completion remains assigned to GC-DHI-04F. No tag, release or NuGet publication
@@ -266,12 +269,14 @@ Codex preserves capacity by avoiding duplicate feature implementation and focusi
   is completed.
 - GC-DHI-04E was defined and integrated as governance only on 2026-08-10. PG-05
   is defined but not implemented or completed.
+- D1-01 was corrected on 2026-08-10: the future E001 shape is 31 columns and
+  preserves the exact ordered operator-class options in structural identity.
 
 ---
 
 ## 7. Work authorized next
 
-Human review of the integrated GC-DHI-04E definition.
+Human review of the corrected GC-DHI-04E definition.
 
 Implementation remains unauthorized. It still requires human review, explicit
 human implementation authorization and a separate Claude Code prompt.
@@ -432,7 +437,7 @@ GC-DHI-02 will be approved when:
 | Phase | PostgreSQL Metadata Adapter |
 | Sequence | `GC-DHI-04A → GC-DHI-04B → GC-DHI-04C → GC-DHI-04D → GC-DHI-04E → GC-DHI-04F` |
 | Closed | `GC-DHI-04A — Connection Boundary and Secret Hygiene`; `GC-DHI-04B — Read-Only Session and SQL Safety Kernel`; `GC-DHI-04C — Server Metadata and Capability Probe`; `GC-DHI-04D — Table Snapshot Query and Mapping` |
-| Defined; implementation unauthorized | `GC-DHI-04E — Index Snapshot Query and Mapping` |
+| Definition corrected; implementation unauthorized | `GC-DHI-04E — Index Snapshot Query and Mapping` |
 | Unauthorized | `GC-DHI-04F — Snapshot Provider Composition and PostgreSQL Verification` |
 | Architecture | `PostgreSql → Core`; Core has no infrastructure dependency |
 | Safety | Static inventoried SQL, parameterized external values, explicit read-only transaction |
@@ -448,8 +453,8 @@ Each subgate requires implementation by Claude Code, Codex review, correction
 when needed, human approval, PR integration, green CI, governance registration
 and closure before the next subgate may begin. GC-DHI-04A and GC-DHI-04B are
 approved and closed. GC-DHI-04C and GC-DHI-04D are also approved and closed.
-GC-DHI-04E is defined, but its implementation remains unauthorized and not
-started. GC-DHI-04F remains unauthorized.
+GC-DHI-04E is defined and its D1 correction is integrated, but implementation
+remains unauthorized and not started. GC-DHI-04F remains unauthorized.
 
 ## 15. GC-DHI-04A integration record
 
@@ -612,16 +617,17 @@ started. GC-DHI-04F remains unauthorized.
 | Future totals | Ten statements; eight kinds; two parameter types; ten frozen contracts |
 | Future validator | 800 combinations; exactly ten accepted and 790 rejected |
 | Schema filters | Existing GC-DHI-04D exact include/exclude `TextArray` contract |
-| Structural shape | E001 has 30 scalar columns and one row per index attribute |
+| Structural shape | E001 has 31 typed columns and one row per index attribute |
+| D1 structural identity | Ordered nullable `pg_attribute.attoptions` is encoded injectively in the existing Core `OperatorClass` string |
 | Statistics shape | E002 has four scalar columns and one row per observed physical index |
 | Partitioned policy | Physical `i` uses direct size/statistics; virtual `I` uses size zero and null scan count |
 | Invalid-index fixture | Deterministic `CREATE INDEX ... ON ONLY` partitioned table |
 | Implementation state | Not authorized, not implemented and not started |
-| Verdict | `DEFINED — AWAITING HUMAN IMPLEMENTATION AUTHORIZATION` |
+| Verdict | `GC-DHI-04E DEFINITION CORRECTED — AWAITING HUMAN IMPLEMENTATION AUTHORIZATION` |
 
 ## 21. Recommended next action
 
-Await human review of the integrated GC-DHI-04E definition.
+Human review of the corrected GC-DHI-04E definition.
 No GC-DHI-04E implementation is authorized.
 
 GC-DHI-04F remains unauthorized, unimplemented and not started.

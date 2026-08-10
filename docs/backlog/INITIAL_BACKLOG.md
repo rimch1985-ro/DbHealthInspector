@@ -3,7 +3,7 @@
 **Backlog version:** 0.1  
 **Status:** Approved baseline  
 **Target:** v0.1.0  
-**Current next gate:** Human review of the GC-DHI-04E definition
+**Current next gate:** Human review of the corrected GC-DHI-04E definition
 
 ---
 
@@ -385,8 +385,11 @@ The frozen future implementation:
 - maps physical indexes, physical index partitions and virtual partitioned
   indexes without descendant aggregation;
 - preserves ordered key columns/expressions, INCLUDE order, predicates,
-  qualified collations/operator classes, access methods and independent
-  validity flags;
+  qualified collations, operator-class namespace/name plus its exact ordered
+  option array, access methods and independent validity flags;
+- reads `pg_attribute.attoptions` through an explicitly typed `string[]` row
+  seam and encodes it injectively in the existing Core `OperatorClass` string,
+  so different option values or stored orders cannot compare equal;
 - maps exact scan counters when available and never invents zero for absent
   statistics;
 - rejects malformed groups, impossible states, duplicates and sensitive
@@ -398,7 +401,8 @@ After implementation, the productive inventory will contain B001–B003,
 C001–C004, D001 and E001–E002: ten statements, eight command kinds, two
 parameter types and ten frozen contracts. The validator will accept exactly
 ten of 800 ID/kind/SQL combinations. PG-05 is defined but is not implemented
-or completed.
+or completed. Its D1-corrected definition awaits human review and explicit
+implementation authorization.
 
 ---
 

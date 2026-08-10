@@ -3,7 +3,7 @@
 **Definition date:** 2026-07-30  
 **Last updated:** 2026-08-10  
 **Status:** Defined  
-**Verdict:** DEFINED — GC-DHI-04E AWAITING HUMAN IMPLEMENTATION AUTHORIZATION
+**Verdict:** GC-DHI-04E DEFINITION CORRECTED — AWAITING HUMAN IMPLEMENTATION AUTHORIZATION
 
 ## 1. Objective
 
@@ -201,7 +201,7 @@ implemented, integrated, approved and closed.
 
 **Backlog:** `PG-05 — Implement index snapshot query`  
 **Definition:** `docs/gates/GC-DHI-04E_DEFINITION.md`  
-**Authorization:** definition integrated; implementation not authorized
+**Authorization:** D1-corrected definition integrated; implementation not authorized
 
 Scope:
 
@@ -226,10 +226,17 @@ contracts and the 10/790 validator matrix, and expands C002 with only the four
 functions E001 calls. C003 remains unchanged. PG-05 is defined but is not
 implemented or completed.
 
+D1-01 corrects E001 to 31 typed columns by reading each key attribute's
+nullable ordered `pg_attribute.attoptions` array directly. The future mapper
+uses an injective length-prefixed encoding of qualified operator-class identity
+plus stored options in the existing Core `OperatorClass` string. No C002,
+inventory, parameter-type or Core change results.
+
 Tests cover simple, multicolumn, unique, primary-key-backed, INCLUDE,
 expression, partial, collation and operator-class indexes; `idx_scan`;
 constraint association; and invalid/not-ready/not-live states through an
-approved fixture or documented strategy.
+approved fixture or documented strategy. Built-in BRIN cases prove that
+different operator-class option values and stored orders cannot collapse.
 
 ### GC-DHI-04F — Snapshot Provider Composition and PostgreSQL Verification
 
@@ -461,7 +468,7 @@ Every subgate may start only when:
 - unresolved predecessor findings are absent;
 - no deferred decision required by that subgate remains ambiguous.
 
-GC-DHI-04E additionally requires its own definition to be integrated and its
+GC-DHI-04E additionally requires its corrected definition to be integrated and its
 documentation-only CI to pass. Definition integration does not authorize
 implementation: explicit human authorization and a separate Claude Code prompt
 are still required. GC-DHI-04A through GC-DHI-04D must remain approved and
@@ -550,9 +557,10 @@ primary-key derivation, ordinal ordering, validation and test strategy are
 resolved by `GC-DHI-04D_DEFINITION.md`. The remaining decisions do not
 authorize or start GC-DHI-04E implementation. E001/E002 separation, exact SQL,
 C002 expansion, unchanged C003 relationship, index grouping, ordering
-normalization, qualified collation/operator-class identities, partitioned-index
-policy, deterministic invalid-index fixture and readiness/liveness limitation
-are resolved by `GC-DHI-04E_DEFINITION.md`.
+normalization, qualified collation/operator-class identities, ordered
+operator-class options, partitioned-index policy, deterministic invalid-index
+fixture and readiness/liveness limitation are resolved by
+`GC-DHI-04E_DEFINITION.md`.
 
 ## 18. Authorization status
 
@@ -562,15 +570,15 @@ are resolved by `GC-DHI-04E_DEFINITION.md`.
 | GC-DHI-04B — Read-Only Session and SQL Safety Kernel | Approved and closed |
 | GC-DHI-04C — Server Metadata and Capability Probe | Approved and closed |
 | GC-DHI-04D — Table Snapshot Query and Mapping | Approved and closed |
-| GC-DHI-04E — Index Snapshot Query and Mapping | Defined; implementation not authorized |
+| GC-DHI-04E — Index Snapshot Query and Mapping | Definition corrected; implementation not authorized |
 | GC-DHI-04F — Snapshot Provider Composition and PostgreSQL Verification | Unauthorized |
 
 No GC-DHI-04E implementation is started or authorized by this document. The
-only next authorized action is human review of the integrated GC-DHI-04E
+only next authorized action is human review of the corrected GC-DHI-04E
 definition. GC-DHI-04F remains unauthorized, unimplemented and not started.
 
 ```text
-GC-DHI-04E DEFINED — AWAITING HUMAN IMPLEMENTATION AUTHORIZATION
-Await human review of the integrated GC-DHI-04E definition.
+GC-DHI-04E DEFINITION CORRECTED — AWAITING HUMAN IMPLEMENTATION AUTHORIZATION
+Human review of the corrected GC-DHI-04E definition.
 No GC-DHI-04E implementation is authorized.
 ```
