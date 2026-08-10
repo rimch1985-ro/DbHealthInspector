@@ -3,7 +3,7 @@
 **Backlog version:** 0.1  
 **Status:** Approved baseline  
 **Target:** v0.1.0  
-**Current next gate:** Human review of the GC-DHI-04D definition
+**Current next gate:** Human review of the GC-DHI-04E definition
 
 ---
 
@@ -337,11 +337,11 @@ statements. PG-03 is implemented, integrated, approved and closed.
 **Priority:** P0  
 **Gate:** GC-DHI-04D  
 **Definition:** `docs/gates/GC-DHI-04D_DEFINITION.md`  
-**Status:** Defined; implementation awaiting human authorization
+**Status:** Completed
 
 ### Acceptance criteria
 
-The frozen future implementation:
+The integrated implementation:
 
 - executes one exact multirecord D001 statement, `ReadTableSnapshots`, only
   through the typed verified-session boundary;
@@ -358,36 +358,47 @@ The frozen future implementation:
 - returns a defensive collection sorted by schema and table using ordinal,
   case-sensitive comparison.
 
-After implementation, the productive inventory will contain exactly B001–B003,
-C001–C004 and D001: eight statements, seven command kinds and two parameter
-types. PG-04 is defined but is not implemented or completed.
+The productive inventory contains exactly B001–B003, C001–C004 and D001: eight
+statements, seven command kinds and two parameter types. PG-04 is implemented,
+integrated, approved and closed.
 
 ---
 
 ## PG-05 — Implement index snapshot query
 
-**Priority:** P0
-**Gate:** GC-DHI-04E
+**Priority:** P0  
+**Gate:** GC-DHI-04E  
+**Definition:** `docs/gates/GC-DHI-04E_DEFINITION.md`  
+**Status:** Defined; implementation awaiting human authorization
 
 ### Acceptance criteria
 
-The query returns sufficient metadata for:
+The frozen future implementation:
 
-- Index validity.
-- Readiness.
-- Liveness.
-- Uniqueness.
-- Primary-key support.
-- Constraint association.
-- Access method.
-- Key columns.
-- Included columns.
-- Expressions.
-- Predicate.
-- Collation.
-- Operator classes.
-- Scan count.
-- Size.
+- executes E001 required structural metadata independently of optional usage
+  statistics;
+- executes E002 only when `UsageStatistics` is available and otherwise maps
+  every `ScanCount` to null;
+- expands C002 with exactly the four function checks used by E001 while leaving
+  C003 unchanged;
+- reuses the exact GC-DHI-04D schema filter and permanent system exclusions;
+- maps physical indexes, physical index partitions and virtual partitioned
+  indexes without descendant aggregation;
+- preserves ordered key columns/expressions, INCLUDE order, predicates,
+  qualified collations/operator classes, access methods and independent
+  validity flags;
+- maps exact scan counters when available and never invents zero for absent
+  statistics;
+- rejects malformed groups, impossible states, duplicates and sensitive
+  failure detail; and
+- returns a defensive ordinally sorted collection of existing Core
+  `IndexSnapshot` values.
+
+After implementation, the productive inventory will contain B001–B003,
+C001–C004, D001 and E001–E002: ten statements, eight command kinds, two
+parameter types and ten frozen contracts. The validator will accept exactly
+ten of 800 ID/kind/SQL combinations. PG-05 is defined but is not implemented
+or completed.
 
 ---
 

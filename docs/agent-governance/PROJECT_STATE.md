@@ -1,24 +1,26 @@
 # PROJECT_STATE — DbHealth Inspector
 
 **Last updated:** 2026-08-10  
+**GC-DHI-04E definition date:** 2026-08-10  
 **GC-DHI-04D integration authorization date:** 2026-08-10  
 **GC-DHI-04D closure date:** 2026-08-10  
 **GC-DHI-04C integration authorization date:** 2026-08-01  
 **GC-DHI-04C closure date:** 2026-08-01  
 **GC-DHI-04B closure date:** 2026-08-01  
 **Current phase:** PostgreSQL Metadata Adapter  
-**Current gate:** GC-DHI-04D approved and closed  
-**Authorized next action:** define the technical scope and authorization criteria for GC-DHI-04E  
+**Current gate:** GC-DHI-04E defined — awaiting human implementation authorization  
+**Authorized next action:** human review of the integrated GC-DHI-04E definition  
 **PG-01:** completed  
 **PG-02:** completed  
 **PG-03:** completed  
 **PG-04:** completed  
+**PG-05:** defined; not implemented  
 **PG-06 foundation:** completed in GC-DHI-04B  
 **PG-06 full completion:** remains assigned to GC-DHI-04F  
 **GC-DHI-04B:** approved and closed  
 **GC-DHI-04C:** approved and closed  
 **GC-DHI-04D:** approved and closed  
-**GC-DHI-04E:** its definition may be prepared; implementation remains unauthorized, unimplemented and not started  
+**GC-DHI-04E:** definition integrated; implementation not authorized or started  
 **GC-DHI-04F:** unauthorized, unimplemented and not started  
 **GC-DHI-03B closure date:** 2026-07-30  
 **GC-DHI-04A closure date:** 2026-07-31  
@@ -88,12 +90,23 @@ or JSON reporting was added.
 
 The human project owner approved and closed GC-DHI-04D on 2026-08-10 after
 reviewing the complete definition, implementation, correction, PR, CI,
-PostgreSQL, artifact, package, installation and governance record. The next
-authorized action is to define the technical scope and authorization criteria
-for GC-DHI-04E. GC-DHI-04E implementation remains unauthorized, unimplemented
-and not started. GC-DHI-04F remains unauthorized, unimplemented and not
-started. PG-06 full completion remains assigned to GC-DHI-04F. No tag, release
-or NuGet publication was performed.
+PostgreSQL, artifact, package, installation and governance record.
+
+GC-DHI-04E is now defined by `docs/gates/GC-DHI-04E_DEFINITION.md`. The future
+architecture separates required E001 structural index metadata from optional
+E002 usage statistics, freezes exact E001/E002 and future C002 SQL, reuses the
+existing schema filter, retains C003 unchanged and resolves index grouping,
+ordering, qualified identity, partitioned-index, invalid-index, cancellation
+and cleanup policies. The future inventory is ten statements, eight command
+kinds, two parameter types and ten frozen contracts; the future validator
+accepts ten of 800 combinations.
+
+PG-05 is defined but not implemented or completed. The next authorized action
+is human review of the integrated GC-DHI-04E definition. GC-DHI-04E
+implementation remains unauthorized, unimplemented and not started.
+GC-DHI-04F remains unauthorized, unimplemented and not started. PG-06 full
+completion remains assigned to GC-DHI-04F. No tag, release or NuGet publication
+was performed.
 
 ---
 
@@ -251,23 +264,17 @@ Codex preserves capacity by avoiding duplicate feature implementation and focusi
   PostgreSQL 18.4 empirical matrix are integrated.
 - The human project owner approved and closed GC-DHI-04D on 2026-08-10. PG-04
   is completed.
+- GC-DHI-04E was defined and integrated as governance only on 2026-08-10. PG-05
+  is defined but not implemented or completed.
 
 ---
 
 ## 7. Work authorized next
 
-Define the technical scope and authorization criteria for GC-DHI-04E.
+Human review of the integrated GC-DHI-04E definition.
 
-GC-DHI-04E definition may be prepared.
-
-GC-DHI-04E implementation requires:
-
-1. an integrated technical definition;
-2. human review;
-3. explicit human implementation authorization;
-4. a separate implementation prompt.
-
-No GC-DHI-04E implementation is authorized by this closure.
+Implementation remains unauthorized. It still requires human review, explicit
+human implementation authorization and a separate Claude Code prompt.
 
 ---
 
@@ -425,22 +432,24 @@ GC-DHI-02 will be approved when:
 | Phase | PostgreSQL Metadata Adapter |
 | Sequence | `GC-DHI-04A → GC-DHI-04B → GC-DHI-04C → GC-DHI-04D → GC-DHI-04E → GC-DHI-04F` |
 | Closed | `GC-DHI-04A — Connection Boundary and Secret Hygiene`; `GC-DHI-04B — Read-Only Session and SQL Safety Kernel`; `GC-DHI-04C — Server Metadata and Capability Probe`; `GC-DHI-04D — Table Snapshot Query and Mapping` |
-| Unauthorized for implementation | `GC-DHI-04E` and `GC-DHI-04F` |
+| Defined; implementation unauthorized | `GC-DHI-04E — Index Snapshot Query and Mapping` |
+| Unauthorized | `GC-DHI-04F — Snapshot Provider Composition and PostgreSQL Verification` |
 | Architecture | `PostgreSql → Core`; Core has no infrastructure dependency |
 | Safety | Static inventoried SQL, parameterized external values, explicit read-only transaction |
 | GC-DHI-04B transaction | `RepeatableRead`, read-only, non-deferrable, rollback only |
 | GC-DHI-04B timeouts | Statement 30 s; lock 5 s; idle-in-transaction 60 s |
 | GC-DHI-04B inventory | Exactly B001, B002 and B003 |
 | Current inventory | Exactly B001–B003, C001–C004 and D001; eight statements total |
+| Future GC-DHI-04E inventory | Add E001 and E002; ten statements, eight kinds, two parameter types and ten frozen contracts |
 | Supported versions | PostgreSQL 18 focused in 04B; mandatory 15/18 verification in GC-DHI-04F |
-| Product implementation | GC-DHI-04D approved and closed; GC-DHI-04E implementation and GC-DHI-04F remain unauthorized and not started |
+| Product implementation | GC-DHI-04D approved and closed; GC-DHI-04E defined but not implemented; GC-DHI-04F unauthorized and not started |
 
 Each subgate requires implementation by Claude Code, Codex review, correction
 when needed, human approval, PR integration, green CI, governance registration
 and closure before the next subgate may begin. GC-DHI-04A and GC-DHI-04B are
 approved and closed. GC-DHI-04C and GC-DHI-04D are also approved and closed.
-GC-DHI-04E definition may be prepared, but its implementation remains
-unauthorized. GC-DHI-04F remains unauthorized.
+GC-DHI-04E is defined, but its implementation remains unauthorized and not
+started. GC-DHI-04F remains unauthorized.
 
 ## 15. GC-DHI-04A integration record
 
@@ -588,12 +597,31 @@ unauthorized. GC-DHI-04F remains unauthorized.
 | Closure date | `2026-08-10` |
 | Gate state | `APPROVED AND CLOSED` |
 
-## 20. Recommended next action
+## 20. GC-DHI-04E definition record
 
-Define the technical scope and authorization criteria for GC-DHI-04E.
-No GC-DHI-04E implementation is authorized by this closure.
+| Item | Defined value |
+|---|---|
+| Definition date | `2026-08-10` |
+| Backlog item | `PG-05` defined; not implemented or completed |
+| Definition | `docs/gates/GC-DHI-04E_DEFINITION.md` |
+| Predecessor | GC-DHI-04D approved and closed |
+| Required query | E001 — `ReadIndexMetadata`; exact frozen structural metadata SQL |
+| Optional query | E002 — `ReadIndexUsageStatistics`; exact frozen `idx_scan` SQL |
+| Capability expansion | C002 adds only four E001 function checks; C003 unchanged |
+| Future inventory | B001–B003, C001–C004, D001, E001–E002 |
+| Future totals | Ten statements; eight kinds; two parameter types; ten frozen contracts |
+| Future validator | 800 combinations; exactly ten accepted and 790 rejected |
+| Schema filters | Existing GC-DHI-04D exact include/exclude `TextArray` contract |
+| Structural shape | E001 has 30 scalar columns and one row per index attribute |
+| Statistics shape | E002 has four scalar columns and one row per observed physical index |
+| Partitioned policy | Physical `i` uses direct size/statistics; virtual `I` uses size zero and null scan count |
+| Invalid-index fixture | Deterministic `CREATE INDEX ... ON ONLY` partitioned table |
+| Implementation state | Not authorized, not implemented and not started |
+| Verdict | `DEFINED — AWAITING HUMAN IMPLEMENTATION AUTHORIZATION` |
 
-GC-DHI-04E definition may be prepared, but implementation requires an
-integrated technical definition, human review, explicit human authorization and
-a separate implementation prompt. GC-DHI-04F remains unauthorized,
-unimplemented and not started.
+## 21. Recommended next action
+
+Await human review of the integrated GC-DHI-04E definition.
+No GC-DHI-04E implementation is authorized.
+
+GC-DHI-04F remains unauthorized, unimplemented and not started.

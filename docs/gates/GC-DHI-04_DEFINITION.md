@@ -1,9 +1,9 @@
 # GC-DHI-04 — PostgreSQL Metadata Adapter
 
 **Definition date:** 2026-07-30  
-**Last updated:** 2026-08-01  
+**Last updated:** 2026-08-10  
 **Status:** Defined  
-**Verdict:** DEFINED — GC-DHI-04D AWAITING HUMAN IMPLEMENTATION AUTHORIZATION
+**Verdict:** DEFINED — GC-DHI-04E AWAITING HUMAN IMPLEMENTATION AUTHORIZATION
 
 ## 1. Objective
 
@@ -171,7 +171,7 @@ integrated, approved and closed.
 
 **Backlog:** `PG-04 — Implement table snapshot query`  
 **Definition:** `docs/gates/GC-DHI-04D_DEFINITION.md`  
-**Authorization:** definition integrated; implementation not authorized
+**Authorization:** approved and closed on 2026-08-10
 
 Scope:
 
@@ -191,16 +191,17 @@ Tests cover ordinary and partitioned tables, partitions, views, materialized
 views where applicable, foreign tables where applicable, mapping behavior and
 schema exclusions.
 
-The frozen future inventory contains exactly eight statements: B001–B003,
-C001–C004 and D001. GC-DHI-04D adds `SelectTableMetadata` and `TextArray`,
+The productive inventory contains exactly eight statements: B001–B003,
+C001–C004 and D001. GC-DHI-04D added `SelectTableMetadata` and `TextArray`,
 expands C002 with the three required size-function privilege checks and freezes
 the exact D001 SQL, schema-filter, result-shape and mapping contracts. PG-04 is
-defined but not implemented or completed.
+implemented, integrated, approved and closed.
 
 ### GC-DHI-04E — Index Snapshot Query and Mapping
 
 **Backlog:** `PG-05 — Implement index snapshot query`  
-**Authorization:** unauthorized until GC-DHI-04D is approved and closed
+**Definition:** `docs/gates/GC-DHI-04E_DEFINITION.md`  
+**Authorization:** definition integrated; implementation not authorized
 
 Scope:
 
@@ -216,6 +217,14 @@ Scope:
   than invented data.
 
 No query plans or `pg_stat_statements` dependency are permitted.
+
+The frozen future inventory contains exactly ten statements: B001–B003,
+C001–C004, D001 and E001–E002. E001 is the required structural query with the
+new `SelectIndexMetadata` kind; E002 is optional usage statistics and reuses
+`SelectStatistics`. GC-DHI-04E keeps exactly two parameter types, freezes ten
+contracts and the 10/790 validator matrix, and expands C002 with only the four
+functions E001 calls. C003 remains unchanged. PG-05 is defined but is not
+implemented or completed.
 
 Tests cover simple, multicolumn, unique, primary-key-backed, INCLUDE,
 expression, partial, collation and operator-class indexes; `idx_scan`;
@@ -452,10 +461,10 @@ Every subgate may start only when:
 - unresolved predecessor findings are absent;
 - no deferred decision required by that subgate remains ambiguous.
 
-GC-DHI-04D additionally requires its own definition to be integrated and its
+GC-DHI-04E additionally requires its own definition to be integrated and its
 documentation-only CI to pass. Definition integration does not authorize
 implementation: explicit human authorization and a separate Claude Code prompt
-are still required. GC-DHI-04A through GC-DHI-04C must remain approved and
+are still required. GC-DHI-04A through GC-DHI-04D must remain approved and
 closed.
 
 ## 14. Gate exit criteria
@@ -491,14 +500,15 @@ Across GC-DHI-04:
 - no extra production project;
 - no tag, release or package publication.
 
-For the GC-DHI-04D definition update specifically:
+For the GC-DHI-04E definition update specifically:
 
 - no product-code or project modification;
 - no Npgsql usage change;
 - no executable SQL resource;
 - no tests or CI change;
-- no PostgreSQL or Docker startup;
-- no GC-DHI-04D implementation.
+- no persistent PostgreSQL fixture or environment; the authorized disposable
+  PostgreSQL 18.4 design probe was removed;
+- no GC-DHI-04E implementation or GC-DHI-04F work.
 
 ## 16. Risks
 
@@ -513,7 +523,7 @@ For the GC-DHI-04D definition update specifically:
 | Incorrect mapping | Explicit mapping, Core validation and representative fixtures |
 | Transaction leakage after cancellation | Cancellation tests plus rollback, cleanup and ownership assertions |
 | Scope growth | Sequential subgates and explicit exclusions |
-| Invalid-index fixture instability | Deferred strategy resolved before GC-DHI-04E integration |
+| Invalid-index fixture instability | Deterministic `CREATE INDEX ... ON ONLY` partitioned-index strategy frozen by GC-DHI-04E |
 
 ## 17. Deferred decisions
 
@@ -524,7 +534,6 @@ before its integration:
 - precedence of connection sources;
 - console rendering;
 - JSON mapping;
-- definitive invalid-index reproducibility strategy;
 - permanent PostgreSQL 15/18 CI matrix;
 - exact minimum role permissions after real queries are validated;
 - final hostname policy for reports.
@@ -539,7 +548,11 @@ are no longer deferred. D001, the C002 expansion, exact schema filters,
 relation and partition precedence, nullable estimates, size semantics,
 primary-key derivation, ordinal ordering, validation and test strategy are
 resolved by `GC-DHI-04D_DEFINITION.md`. The remaining decisions do not
-authorize or start GC-DHI-04D implementation.
+authorize or start GC-DHI-04E implementation. E001/E002 separation, exact SQL,
+C002 expansion, unchanged C003 relationship, index grouping, ordering
+normalization, qualified collation/operator-class identities, partitioned-index
+policy, deterministic invalid-index fixture and readiness/liveness limitation
+are resolved by `GC-DHI-04E_DEFINITION.md`.
 
 ## 18. Authorization status
 
@@ -548,17 +561,16 @@ authorize or start GC-DHI-04D implementation.
 | GC-DHI-04A — Connection Boundary and Secret Hygiene | Approved and closed |
 | GC-DHI-04B — Read-Only Session and SQL Safety Kernel | Approved and closed |
 | GC-DHI-04C — Server Metadata and Capability Probe | Approved and closed |
-| GC-DHI-04D — Table Snapshot Query and Mapping | Defined; implementation awaiting human authorization |
-| GC-DHI-04E — Index Snapshot Query and Mapping | Unauthorized |
+| GC-DHI-04D — Table Snapshot Query and Mapping | Approved and closed |
+| GC-DHI-04E — Index Snapshot Query and Mapping | Defined; implementation not authorized |
 | GC-DHI-04F — Snapshot Provider Composition and PostgreSQL Verification | Unauthorized |
 
-No GC-DHI-04D implementation is started or authorized by this document. The
-only next authorized action is human review of the integrated GC-DHI-04D
-definition. GC-DHI-04E through GC-DHI-04F remain unauthorized, unimplemented
-and not started.
+No GC-DHI-04E implementation is started or authorized by this document. The
+only next authorized action is human review of the integrated GC-DHI-04E
+definition. GC-DHI-04F remains unauthorized, unimplemented and not started.
 
 ```text
-GC-DHI-04D DEFINED — AWAITING HUMAN IMPLEMENTATION AUTHORIZATION
-Await human review of the integrated GC-DHI-04D definition.
-No GC-DHI-04D implementation is authorized.
+GC-DHI-04E DEFINED — AWAITING HUMAN IMPLEMENTATION AUTHORIZATION
+Await human review of the integrated GC-DHI-04E definition.
+No GC-DHI-04E implementation is authorized.
 ```
