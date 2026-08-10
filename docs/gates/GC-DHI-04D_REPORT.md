@@ -2,9 +2,10 @@
 
 **Gate:** GC-DHI-04D — Table Snapshot Query and Mapping  
 **Backlog:** PG-04  
-**Status:** Implemented and integrated  
-**Verdict:** READY FOR FINAL HUMAN CLOSURE  
+**Status:** Approved and closed  
+**Verdict:** APPROVED AND CLOSED  
 **Integration date:** 2026-08-10  
+**Closure date:** 2026-08-10  
 
 ---
 
@@ -361,8 +362,9 @@ sha256:34d49fc53bf780ac48ff7c076662687fee038d95701dc3272ee2cb6620cbd444
 After merge, local and remote master pointed to
 `89a74c2e6a57c5ef732f5f46bac7e6a9ccc5e236` with divergence `0/0`. Pull
 request `#6` was merged, open PR count was zero and both feature branch refs
-were absent. Governance is recorded by the subsequent documentation-only
-commit.
+were absent. Governance was integrated by documentation-only commit
+`e0180b718deaab6a0d4f415b195b4a0880c0eab6`. Its CI run `31423561874` passed
+on Ubuntu job `93569825851` and Windows job `93569825907`.
 
 ## 43. Exclusions
 
@@ -372,11 +374,28 @@ reporting, workflow, dependency, tag, release or NuGet publication. GC-DHI-04E
 and GC-DHI-04F were not started. PG-06 full completion remains assigned to
 GC-DHI-04F.
 
-## 44. Pending final human closure
+## 44. Final closure transition
 
-PG-04 is implemented and integrated. GC-DHI-04D is ready for final human review
-but is not yet approved and closed. GC-DHI-04E remains unauthorized.
+PG-04 is completed. The human project owner reviewed the complete record and
+approved and closed GC-DHI-04D on 2026-08-10. GC-DHI-04E was not authorized for
+implementation and was not started by this closure.
+
+## Final human closure
+
+- Closure date: `2026-08-10`
+- Verdict: `APPROVED AND CLOSED`
+- Human decision: the project owner reviewed the complete GC-DHI-04D record,
+  including the definition, implementation, Codex R1, Claude C1, Codex R2,
+  Claude C2, Codex R3, pull-request integration, multiplatform CI, canonical
+  merge artifact, package audit, isolated installation, security evidence and
+  governance integration record and issued the final approval.
+- PG-04: completed.
+- GC-DHI-04D: approved and closed.
+- GC-DHI-04E: implementation is not authorized and was not started by this
+  closure.
+
+GC-DHI-04E was not implemented or started by this closure.
 
 ```text
-READY FOR FINAL HUMAN CLOSURE
+APPROVED AND CLOSED
 ```

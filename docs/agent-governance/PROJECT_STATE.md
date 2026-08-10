@@ -2,22 +2,23 @@
 
 **Last updated:** 2026-08-10  
 **GC-DHI-04D integration authorization date:** 2026-08-10  
+**GC-DHI-04D closure date:** 2026-08-10  
 **GC-DHI-04C integration authorization date:** 2026-08-01  
 **GC-DHI-04C closure date:** 2026-08-01  
 **GC-DHI-04B closure date:** 2026-08-01  
 **Current phase:** PostgreSQL Metadata Adapter  
-**Current gate:** GC-DHI-04D implemented and integrated — ready for final human closure  
-**Authorized next action:** final human review and closure of GC-DHI-04D  
+**Current gate:** GC-DHI-04D approved and closed  
+**Authorized next action:** define the technical scope and authorization criteria for GC-DHI-04E  
 **PG-01:** completed  
 **PG-02:** completed  
 **PG-03:** completed  
-**PG-04:** implemented and integrated  
+**PG-04:** completed  
 **PG-06 foundation:** completed in GC-DHI-04B  
 **PG-06 full completion:** remains assigned to GC-DHI-04F  
 **GC-DHI-04B:** approved and closed  
 **GC-DHI-04C:** approved and closed  
-**GC-DHI-04D:** implemented and integrated; not yet closed  
-**GC-DHI-04E:** unauthorized, unimplemented and not started  
+**GC-DHI-04D:** approved and closed  
+**GC-DHI-04E:** its definition may be prepared; implementation remains unauthorized, unimplemented and not started  
 **GC-DHI-04F:** unauthorized, unimplemented and not started  
 **GC-DHI-03B closure date:** 2026-07-30  
 **GC-DHI-04A closure date:** 2026-07-31  
@@ -39,7 +40,7 @@ Code/Codex review sequence and integrated through pull request `#6` at
 `8fd101bcaf86bad70c2f6dc15ac0d2fc7087fa64` and second parent is the
 implementation commit.
 
-PG-04 is implemented and integrated. The productive inventory is exactly
+PG-04 is completed. The productive inventory is exactly
 B001–B003, C001–C004 and D001: eight static statements, seven command kinds,
 two parameter types and eight frozen contracts. D001 is 1816 characters with
 SHA-256 `13b4e88d7ac0053d87cf760b3e6a64ae879effa91de66a15bd693ba458680b87`.
@@ -52,6 +53,10 @@ job `93565993989`. Master CI run `31422585918` passed on Ubuntu job
 Windows completed 1517 tests; both reported zero failures, zero skipped tests,
 zero build warnings and zero build errors. Ubuntu packed and uploaded the tool;
 Windows passed the bootstrap-only CLI smoke test.
+
+The subsequent governance integration commit
+`e0180b718deaab6a0d4f415b195b4a0880c0eab6` passed CI run `31423561874` on
+Ubuntu job `93569825851` and Windows job `93569825907`.
 
 The PostgreSQL suite used `postgres:18.4` at immutable digest
 `sha256:3a82e1f56c8f0f5616a11103ac3d47e632c3938698946a7ad26da0df1334744a`.
@@ -81,11 +86,14 @@ zero new exported PostgreSQL types and zero PostgreSQL snapshot-provider
 implementations. No D002, index query, diagnostic rule, CLI inspection behavior
 or JSON reporting was added.
 
-GC-DHI-04D is implemented and integrated but is not yet finally closed. The
-only next action is final human review and closure of GC-DHI-04D. GC-DHI-04E and
-GC-DHI-04F remain unauthorized, unimplemented and not started. PG-06 full
-completion remains assigned to GC-DHI-04F. No tag, release or NuGet publication
-was performed.
+The human project owner approved and closed GC-DHI-04D on 2026-08-10 after
+reviewing the complete definition, implementation, correction, PR, CI,
+PostgreSQL, artifact, package, installation and governance record. The next
+authorized action is to define the technical scope and authorization criteria
+for GC-DHI-04E. GC-DHI-04E implementation remains unauthorized, unimplemented
+and not started. GC-DHI-04F remains unauthorized, unimplemented and not
+started. PG-06 full completion remains assigned to GC-DHI-04F. No tag, release
+or NuGet publication was performed.
 
 ---
 
@@ -241,14 +249,25 @@ Codex preserves capacity by avoiding duplicate feature implementation and focusi
 - D001, C002, `TextArray`, strict ten-column mapping, ordinal ordering,
   cancellation, cleanup, 17/13 relation-state classification and the complete
   PostgreSQL 18.4 empirical matrix are integrated.
+- The human project owner approved and closed GC-DHI-04D on 2026-08-10. PG-04
+  is completed.
 
 ---
 
 ## 7. Work authorized next
 
-Final human review and closure of GC-DHI-04D.
+Define the technical scope and authorization criteria for GC-DHI-04E.
 
-GC-DHI-04E remains unauthorized.
+GC-DHI-04E definition may be prepared.
+
+GC-DHI-04E implementation requires:
+
+1. an integrated technical definition;
+2. human review;
+3. explicit human implementation authorization;
+4. a separate implementation prompt.
+
+No GC-DHI-04E implementation is authorized by this closure.
 
 ---
 
@@ -256,7 +275,8 @@ GC-DHI-04E remains unauthorized.
 
 The following are not yet authorized:
 
-- Define or implement GC-DHI-04E through GC-DHI-04F.
+- Implement GC-DHI-04E.
+- Define or implement GC-DHI-04F.
 - Skip or combine GC-DHI-04 subgates.
 - Implement PostgreSQL catalog queries before their authorized subgate.
 - Implement production diagnostic rules.
@@ -404,8 +424,7 @@ GC-DHI-02 will be approved when:
 |---|---|
 | Phase | PostgreSQL Metadata Adapter |
 | Sequence | `GC-DHI-04A → GC-DHI-04B → GC-DHI-04C → GC-DHI-04D → GC-DHI-04E → GC-DHI-04F` |
-| Closed | `GC-DHI-04A — Connection Boundary and Secret Hygiene`; `GC-DHI-04B — Read-Only Session and SQL Safety Kernel`; `GC-DHI-04C — Server Metadata and Capability Probe` |
-| Integrated; pending closure | `GC-DHI-04D — Table Snapshot Query and Mapping` |
+| Closed | `GC-DHI-04A — Connection Boundary and Secret Hygiene`; `GC-DHI-04B — Read-Only Session and SQL Safety Kernel`; `GC-DHI-04C — Server Metadata and Capability Probe`; `GC-DHI-04D — Table Snapshot Query and Mapping` |
 | Unauthorized for implementation | `GC-DHI-04E` and `GC-DHI-04F` |
 | Architecture | `PostgreSql → Core`; Core has no infrastructure dependency |
 | Safety | Static inventoried SQL, parameterized external values, explicit read-only transaction |
@@ -414,14 +433,14 @@ GC-DHI-02 will be approved when:
 | GC-DHI-04B inventory | Exactly B001, B002 and B003 |
 | Current inventory | Exactly B001–B003, C001–C004 and D001; eight statements total |
 | Supported versions | PostgreSQL 18 focused in 04B; mandatory 15/18 verification in GC-DHI-04F |
-| Product implementation | GC-DHI-04C approved and closed; GC-DHI-04D implemented and integrated but not yet closed; GC-DHI-04E through GC-DHI-04F not started |
+| Product implementation | GC-DHI-04D approved and closed; GC-DHI-04E implementation and GC-DHI-04F remain unauthorized and not started |
 
 Each subgate requires implementation by Claude Code, Codex review, correction
 when needed, human approval, PR integration, green CI, governance registration
 and closure before the next subgate may begin. GC-DHI-04A and GC-DHI-04B are
-approved and closed. GC-DHI-04C is also approved and closed. GC-DHI-04D is
-implemented and integrated and awaits final human closure. GC-DHI-04E and
-GC-DHI-04F remain unauthorized.
+approved and closed. GC-DHI-04C and GC-DHI-04D are also approved and closed.
+GC-DHI-04E definition may be prepared, but its implementation remains
+unauthorized. GC-DHI-04F remains unauthorized.
 
 ## 15. GC-DHI-04A integration record
 
@@ -446,7 +465,7 @@ GC-DHI-04F remain unauthorized.
 | Tool version | `0.1.0-alpha.0+923ca38be1698f568665f7eacb3d760530e4a1ee` |
 | Golden fingerprint | `sha256:34d49fc53bf780ac48ff7c076662687fee038d95701dc3272ee2cb6620cbd444` |
 | Functional exclusions | No SQL, session, capability probe, snapshot mapping, DBH rules, CLI inspection or JSON reporting |
-| Subsequent state | GC-DHI-04D implemented and integrated; final human closure pending |
+| Subsequent state | GC-DHI-04D approved and closed; GC-DHI-04E definition may be prepared |
 
 ## 16. GC-DHI-04B integration record
 
@@ -537,12 +556,12 @@ GC-DHI-04F remain unauthorized.
 | Closure date | `2026-08-01` |
 | Gate state | `APPROVED AND CLOSED` |
 
-## 19. GC-DHI-04D integration record
+## 19. GC-DHI-04D integration and closure record
 
 | Item | Defined value |
 |---|---|
 | Definition date | `2026-08-01` |
-| Backlog item | `PG-04` implemented and integrated |
+| Backlog item | `PG-04` completed |
 | Definition | `docs/gates/GC-DHI-04D_DEFINITION.md` |
 | Predecessor | GC-DHI-04C approved and closed |
 | Productive query | D001 — `ReadTableSnapshots`; 1816 characters; SHA-256 `13b4e88d7ac0053d87cf760b3e6a64ae879effa91de66a15bd693ba458680b87` |
@@ -558,18 +577,23 @@ GC-DHI-04F remain unauthorized.
 | Merge commit | `89a74c2e6a57c5ef732f5f46bac7e6a9ccc5e236` |
 | Pull-request CI | `31422387953` — Ubuntu `93565994145`, Windows `93565993989` |
 | Master CI | `31422585918` — Ubuntu `93566643563`, Windows `93566643623` |
+| Governance integration commit | `e0180b718deaab6a0d4f415b195b4a0880c0eab6` |
+| Governance CI | `31423561874` — Ubuntu `93569825851`, Windows `93569825907` |
 | Tests | Ubuntu 1617; Windows 1517; zero failures and zero skipped |
 | Build | Zero warnings and zero errors on both platforms |
 | Canonical artifact | `dbhealth-bootstrap-package`; ID `9075942338`; 943676 bytes; digest `sha256:6ff2d0e5eea3e1f458ed9995f73123dc54e28264a3d93a6fea8eb579e5fe5812` |
 | Package | `DbHealthInspector.Tool.0.1.0-alpha.0.nupkg`; 948373 bytes; SHA-256 `357156EB9BD9FC2140EB6F21D55DE29315CC2A7B521B9F788B437F03DCBC5492` |
 | Isolated installation | Bootstrap-only help; version `0.1.0-alpha.0+89a74c2e6a57c5ef732f5f46bac7e6a9ccc5e236` |
 | Publication state | No tag, release or NuGet publication |
-| Gate state | `READY FOR FINAL HUMAN CLOSURE`; not yet closed |
+| Closure date | `2026-08-10` |
+| Gate state | `APPROVED AND CLOSED` |
 
 ## 20. Recommended next action
 
-Await final human review and closure of GC-DHI-04D.
-GC-DHI-04E remains unauthorized.
+Define the technical scope and authorization criteria for GC-DHI-04E.
+No GC-DHI-04E implementation is authorized by this closure.
 
-GC-DHI-04E through GC-DHI-04F remain unauthorized, unimplemented and not
-started.
+GC-DHI-04E definition may be prepared, but implementation requires an
+integrated technical definition, human review, explicit human authorization and
+a separate implementation prompt. GC-DHI-04F remains unauthorized,
+unimplemented and not started.
