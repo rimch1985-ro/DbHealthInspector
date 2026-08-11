@@ -79,6 +79,18 @@ internal interface IPostgreSqlRowSource : IAsyncDisposable
     long GetInt64(int ordinal);
 
     /// <summary>
+    /// Reads the column at <paramref name="ordinal"/> as an array of strings. Called only after
+    /// <c>IsNull</c> has returned <see langword="false"/>.
+    /// </summary>
+    /// <remarks>
+    /// Provider-neutral by design: the implementation asks the driver for a typed array and never
+    /// parses PostgreSQL's array text form. The returned array is a fresh defensive copy the caller
+    /// owns, element order is preserved, an empty array stays empty and is distinct from SQL NULL,
+    /// and a null element is rejected rather than surfaced.
+    /// </remarks>
+    string[] GetStringArray(int ordinal);
+
+    /// <summary>
     /// Reads the column at <paramref name="ordinal"/> as a <see cref="DateTimeOffset"/>. Called
     /// only after <c>IsNull</c> has returned <see langword="false"/>.
     /// </summary>
@@ -126,6 +138,18 @@ internal interface IPostgreSqlRowReader : IAsyncDisposable
     /// <see cref="IsNull"/> has returned <see langword="false"/> for a nullable column.
     /// </summary>
     long GetInt64(int ordinal);
+
+    /// <summary>
+    /// Reads the column at <paramref name="ordinal"/> as an array of strings. Called only after
+    /// <see cref="IsNull"/> has returned <see langword="false"/>.
+    /// </summary>
+    /// <remarks>
+    /// Provider-neutral by design: the implementation asks the driver for a typed array and never
+    /// parses PostgreSQL's array text form. The returned array is a fresh defensive copy the caller
+    /// owns, element order is preserved, an empty array stays empty and is distinct from SQL NULL,
+    /// and a null element is rejected rather than surfaced.
+    /// </remarks>
+    string[] GetStringArray(int ordinal);
 
     /// <summary>
     /// Reads the column at <paramref name="ordinal"/> as a <see cref="DateTimeOffset"/>. Called

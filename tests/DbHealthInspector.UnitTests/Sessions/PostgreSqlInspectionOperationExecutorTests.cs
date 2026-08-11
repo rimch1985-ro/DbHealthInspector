@@ -86,14 +86,18 @@ public sealed class PostgreSqlInspectionOperationExecutorTests
         .ToArray();
 
     [Fact]
-    public void View_ExposesExactlyTheFiveTypedOperations()
+    public void View_ExposesExactlyTheSixTypedOperations()
     {
+        // GC-DHI-04E adds exactly one: the composite index-snapshot operation covering E001 and
+        // E002. E002 gets no operation of its own, because whether it may run at all is a
+        // capability decision the caller must not be able to take independently of the merge.
         string[] names = DeclaredMethods().Select(method => method.Name).OrderBy(name => name, StringComparer.Ordinal).ToArray();
 
         Assert.Equal(
             [
                 nameof(PostgreSqlInspectionOperationExecutor.CheckCatalogMetadataAccessAsync),
                 nameof(PostgreSqlInspectionOperationExecutor.CheckUsageStatisticsAccessAsync),
+                nameof(PostgreSqlInspectionOperationExecutor.ReadIndexSnapshotsAsync),
                 nameof(PostgreSqlInspectionOperationExecutor.ReadServerIdentityAsync),
                 nameof(PostgreSqlInspectionOperationExecutor.ReadStatisticsResetAsync),
                 nameof(PostgreSqlInspectionOperationExecutor.ReadTableSnapshotsAsync),

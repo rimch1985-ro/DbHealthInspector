@@ -148,6 +148,19 @@ internal sealed class FakeRowSource : IPostgreSqlRowSource
 
     public long GetInt64(int ordinal) => (long)_rows[_index][ordinal]!;
 
+    public string[] GetStringArray(int ordinal)
+    {
+        string?[] raw = (string?[])_rows[_index][ordinal]!;
+
+        var copy = new string[raw.Length];
+        for (var index = 0; index < raw.Length; index++)
+        {
+            copy[index] = raw[index] ?? throw new PostgreSqlSqlResultShapeException();
+        }
+
+        return copy;
+    }
+
     public DateTimeOffset GetDateTimeOffset(int ordinal) => (DateTimeOffset)_rows[_index][ordinal]!;
 
     public ValueTask DisposeAsync()

@@ -4,7 +4,8 @@ namespace DbHealthInspector.UnitTests.Sql;
 
 /// <summary>
 /// The validator's second layer: the frozen statement contract (GC-DHI-04C-C1 R1-01,
-/// GC-DHI-04D). Only the eight canonical (id, kind, SQL, parameters) combinations exist; every
+/// GC-DHI-04D and GC-DHI-04E). Only the ten canonical (id, kind, SQL, parameters) combinations
+/// exist; every
 /// mutation of any of the four parts is rejected.
 /// </summary>
 /// <remarks>
@@ -28,7 +29,16 @@ public sealed class PostgreSqlSqlFrozenStatementContractTests
         new(3, PostgreSqlSqlParameterType.Int32, "idle-in-transaction-timeout milliseconds"),
     ];
 
-    /// <summary>The eight canonical definitions, exactly as the inventory declares them.</summary>
+    /// <summary>
+    /// The ten canonical definitions, transcribed independently of
+    /// <see cref="PostgreSqlSqlInventory"/>'s own definition list.
+    /// </summary>
+    /// <remarks>
+    /// The (id, kind, parameter) triples are written out here by hand on purpose: deriving them
+    /// from the inventory being tested would make the matrix agree with any inventory, including a
+    /// wrong one. Only the SQL text is shared, because a second copy of ten frozen statements would
+    /// be a drift hazard of its own and the exact bytes are pinned separately by hash.
+    /// </remarks>
     private static (PostgreSqlSqlStatementId Id, PostgreSqlSqlCommandKind Kind, string Sql, PostgreSqlSqlParameterDefinition[] Parameters)[] Canonical() =>
     [
         (PostgreSqlSqlStatementId.SetTransactionReadOnly, PostgreSqlSqlCommandKind.SetTransactionReadOnly,
@@ -47,6 +57,10 @@ public sealed class PostgreSqlSqlFrozenStatementContractTests
             PostgreSqlSqlInventory.ReadStatisticsResetSql, NoParameters),
         (PostgreSqlSqlStatementId.ReadTableSnapshots, PostgreSqlSqlCommandKind.SelectTableMetadata,
             PostgreSqlSqlInventory.ReadTableSnapshotsSql, TwoSchemaFilters()),
+        (PostgreSqlSqlStatementId.ReadIndexMetadata, PostgreSqlSqlCommandKind.SelectIndexMetadata,
+            PostgreSqlSqlInventory.ReadIndexMetadataSql, TwoSchemaFilters()),
+        (PostgreSqlSqlStatementId.ReadIndexUsageStatistics, PostgreSqlSqlCommandKind.SelectStatistics,
+            PostgreSqlSqlInventory.ReadIndexUsageStatisticsSql, TwoSchemaFilters()),
     ];
 
     private static void Validate(
@@ -64,21 +78,21 @@ public sealed class PostgreSqlSqlFrozenStatementContractTests
         params PostgreSqlSqlParameterDefinition[] parameters) =>
         Assert.Throws<PostgreSqlSqlSafetyException>(() => Validate(id, kind, sql, parameters));
 
-    // --- Positive: exactly the eight canonical definitions ------------------------------------
+    // --- Positive: exactly the ten canonical definitions --------------------------------------
 
     [Fact]
-    public void EveryEightCanonicalDefinition_IsAccepted()
+    public void EveryCanonicalDefinition_IsAccepted()
     {
         foreach ((PostgreSqlSqlStatementId id, PostgreSqlSqlCommandKind kind, string sql, PostgreSqlSqlParameterDefinition[] parameters) in Canonical())
         {
             Validate(id, kind, sql, parameters);
         }
 
-        Assert.Equal(8, Canonical().Length);
+        Assert.Equal(10, Canonical().Length);
     }
 
     [Fact]
-    public void AcrossEveryIdKindAndSqlCombination_ExactlyEightAreAccepted()
+    public void AcrossEveryIdKindAndSqlCombination_ExactlyTenAreAccepted()
     {
         var canonical = Canonical();
         var accepted = new List<(PostgreSqlSqlStatementId Id, PostgreSqlSqlCommandKind Kind, int SqlIndex)>();
@@ -102,11 +116,13 @@ public sealed class PostgreSqlSqlFrozenStatementContractTests
             }
         }
 
-        // 8 ids x 7 kinds x 8 SQL texts = 448 combinations; exactly eight survive.
-        Assert.Equal(448, Enum.GetValues<PostgreSqlSqlStatementId>().Length
+        // 10 ids x 8 kinds x 10 SQL texts = 800 combinations; exactly ten survive, so 790 are
+        // rejected.
+        Assert.Equal(800, Enum.GetValues<PostgreSqlSqlStatementId>().Length
             * Enum.GetValues<PostgreSqlSqlCommandKind>().Length
             * canonical.Length);
-        Assert.Equal(8, accepted.Count);
+        Assert.Equal(10, accepted.Count);
+        Assert.Equal(790, 800 - accepted.Count);
 
         for (var index = 0; index < canonical.Length; index++)
         {

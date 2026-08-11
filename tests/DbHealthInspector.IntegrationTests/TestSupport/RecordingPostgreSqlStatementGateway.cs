@@ -116,6 +116,8 @@ internal sealed class RecordingPostgreSqlRowReader : IPostgreSqlRowReader
 
     public long GetInt64(int ordinal) => _inner.GetInt64(ordinal);
 
+    public string[] GetStringArray(int ordinal) => _inner.GetStringArray(ordinal);
+
     public DateTimeOffset GetDateTimeOffset(int ordinal) => _inner.GetDateTimeOffset(ordinal);
 
     // Disposal is forwarded unchanged: the wrapper owns nothing of its own, so it must neither

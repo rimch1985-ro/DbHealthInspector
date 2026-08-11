@@ -3,7 +3,8 @@ using System.Collections.ObjectModel;
 namespace DbHealthInspector.PostgreSql.Tables;
 
 /// <summary>
-/// The immutable, closed schema filter bound to D001's two <c>text[]</c> parameters.
+/// The immutable, closed schema filter bound to the two <c>text[]</c> parameters shared by D001,
+/// E001 and E002.
 /// </summary>
 /// <remarks>
 /// <para>

@@ -208,6 +208,38 @@ internal sealed class NpgsqlStatementGateway : IPostgreSqlStatementGateway
 
         public long GetInt64(int ordinal) => _reader.GetInt64(ordinal);
 
+        /// <summary>
+        /// Reads a <c>text[]</c> column through Npgsql's typed array reader.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <see cref="NpgsqlDataReader.GetFieldValue{T}"/> does the decoding, so PostgreSQL's array
+        /// text form — with its quoting, escaping and <c>NULL</c> spelling — is never parsed here.
+        /// A wrong column type surfaces as the driver's own <see cref="InvalidCastException"/>,
+        /// which the executor sanitizes at the row seam exactly as it does for every other typed
+        /// read.
+        /// </para>
+        /// <para>
+        /// The driver's array is copied immediately: nothing the reader may reuse, pool or mutate
+        /// after the row advances can reach a snapshot. A null element is rejected rather than
+        /// passed on, because PostgreSQL's <c>attoptions</c> has no legitimate null member and a
+        /// silent null would later become an indistinguishable empty option.
+        /// </para>
+        /// </remarks>
+        public string[] GetStringArray(int ordinal)
+        {
+            string?[] raw = _reader.GetFieldValue<string?[]>(ordinal);
+
+            var copy = new string[raw.Length];
+            for (var index = 0; index < raw.Length; index++)
+            {
+                copy[index] = raw[index]
+                    ?? throw new PostgreSqlSqlResultShapeException();
+            }
+
+            return copy;
+        }
+
         // timestamptz is read as a DateTimeOffset directly; Npgsql yields a zero offset for it,
         // and the executor rejects any other offset rather than normalising it silently.
         public DateTimeOffset GetDateTimeOffset(int ordinal) => _reader.GetFieldValue<DateTimeOffset>(ordinal);
@@ -267,6 +299,8 @@ internal sealed class NpgsqlStatementGateway : IPostgreSqlStatementGateway
         public int GetInt32(int ordinal) => _rows.GetInt32(ordinal);
 
         public long GetInt64(int ordinal) => _rows.GetInt64(ordinal);
+
+        public string[] GetStringArray(int ordinal) => _rows.GetStringArray(ordinal);
 
         public DateTimeOffset GetDateTimeOffset(int ordinal) => _rows.GetDateTimeOffset(ordinal);
 

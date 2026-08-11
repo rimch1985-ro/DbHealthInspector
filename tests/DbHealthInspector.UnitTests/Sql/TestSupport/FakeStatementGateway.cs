@@ -153,6 +153,23 @@ internal sealed class FakeRowReader : IPostgreSqlRowReader
 
     public long GetInt64(int ordinal) => (long)_rows[_index][ordinal]!;
 
+    /// <summary>
+    /// Mirrors the production seam: a wrong CLR type raises <see cref="InvalidCastException"/>, and
+    /// the array is copied so a test can prove the caller never receives the scripted instance.
+    /// </summary>
+    public string[] GetStringArray(int ordinal)
+    {
+        string?[] raw = (string?[])_rows[_index][ordinal]!;
+
+        var copy = new string[raw.Length];
+        for (var index = 0; index < raw.Length; index++)
+        {
+            copy[index] = raw[index] ?? throw new PostgreSqlSqlResultShapeException();
+        }
+
+        return copy;
+    }
+
     public DateTimeOffset GetDateTimeOffset(int ordinal) => (DateTimeOffset)_rows[_index][ordinal]!;
 
     public ValueTask DisposeAsync()

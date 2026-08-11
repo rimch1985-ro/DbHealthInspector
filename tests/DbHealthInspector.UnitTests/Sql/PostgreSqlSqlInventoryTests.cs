@@ -12,14 +12,19 @@ public sealed class PostgreSqlSqlInventoryTests
 {
     private static PostgreSqlSqlInventory Inventory() => new();
 
+    private static string Sha256Of(string sql) =>
+        Convert.ToHexString(
+            System.Security.Cryptography.SHA256.HashData(
+                System.Text.Encoding.UTF8.GetBytes(sql))).ToLowerInvariant();
+
     [Fact]
-    public void Inventory_ContainsExactlyEightStatements()
+    public void Inventory_ContainsExactlyTenStatements()
     {
-        Assert.Equal(8, Inventory().Statements.Count);
+        Assert.Equal(10, Inventory().Statements.Count);
     }
 
     [Fact]
-    public void Inventory_OrdersStatementsB001ThroughD001()
+    public void Inventory_OrdersStatementsB001ThroughE002()
     {
         PostgreSqlSqlInventory inventory = Inventory();
 
@@ -33,6 +38,8 @@ public sealed class PostgreSqlSqlInventoryTests
                 PostgreSqlSqlStatementId.CheckUsageStatisticsAccess,
                 PostgreSqlSqlStatementId.ReadStatisticsReset,
                 PostgreSqlSqlStatementId.ReadTableSnapshots,
+                PostgreSqlSqlStatementId.ReadIndexMetadata,
+                PostgreSqlSqlStatementId.ReadIndexUsageStatistics,
             ],
             inventory.Statements.Select(statement => statement.Id).ToArray());
     }
@@ -48,17 +55,18 @@ public sealed class PostgreSqlSqlInventoryTests
     }
 
     [Fact]
-    public void StatementIdEnum_DeclaresExactlyEightMembers()
+    public void StatementIdEnum_DeclaresExactlyTenMembers()
     {
-        // A ninth productive statement id — an index query above all — needs a later authorized
-        // gate.
-        Assert.Equal(8, Enum.GetValues<PostgreSqlSqlStatementId>().Length);
+        // An eleventh productive statement id needs a later authorized gate.
+        Assert.Equal(10, Enum.GetValues<PostgreSqlSqlStatementId>().Length);
     }
 
     [Fact]
-    public void CommandKindEnum_DeclaresExactlySevenMembers()
+    public void CommandKindEnum_DeclaresExactlyEightMembers()
     {
-        Assert.Equal(7, Enum.GetValues<PostgreSqlSqlCommandKind>().Length);
+        // GC-DHI-04E adds SelectIndexMetadata for E001. E002 reuses SelectStatistics rather than
+        // inventing a ninth kind, because it reads a statistics view exactly as C004 does.
+        Assert.Equal(8, Enum.GetValues<PostgreSqlSqlCommandKind>().Length);
     }
 
     [Fact]
@@ -179,70 +187,21 @@ public sealed class PostgreSqlSqlInventoryTests
         Assert.Equal(PostgreSqlSqlCommandKind.SelectServerIdentity, definition.Kind);
     }
 
+    /// <summary>
+    /// C002's exact bytes, pinned by the hash GC-DHI-04E §8 declares rather than by a second copy
+    /// of the text. A duplicated literal would only prove the inventory equals itself; the digest
+    /// is an independent value the implementation cannot influence.
+    /// </summary>
     [Fact]
-    public void Resolve_C002_ReturnsExactSql()
+    public void Resolve_C002_MatchesTheNormativeDigest()
     {
-        PostgreSqlSqlStatementDefinition definition = Inventory().Resolve(PostgreSqlSqlStatementId.CheckCatalogMetadataAccess);
+        PostgreSqlSqlStatementDefinition definition =
+            Inventory().Resolve(PostgreSqlSqlStatementId.CheckCatalogMetadataAccess);
 
-        const string expected = """
-            SELECT
-                pg_catalog.has_schema_privilege(
-                    current_user,
-                    'pg_catalog',
-                    'USAGE')
-                AND pg_catalog.has_table_privilege(
-                    current_user,
-                    'pg_catalog.pg_namespace',
-                    'SELECT')
-                AND pg_catalog.has_table_privilege(
-                    current_user,
-                    'pg_catalog.pg_class',
-                    'SELECT')
-                AND pg_catalog.has_table_privilege(
-                    current_user,
-                    'pg_catalog.pg_inherits',
-                    'SELECT')
-                AND pg_catalog.has_table_privilege(
-                    current_user,
-                    'pg_catalog.pg_index',
-                    'SELECT')
-                AND pg_catalog.has_table_privilege(
-                    current_user,
-                    'pg_catalog.pg_attribute',
-                    'SELECT')
-                AND pg_catalog.has_table_privilege(
-                    current_user,
-                    'pg_catalog.pg_am',
-                    'SELECT')
-                AND pg_catalog.has_table_privilege(
-                    current_user,
-                    'pg_catalog.pg_constraint',
-                    'SELECT')
-                AND pg_catalog.has_table_privilege(
-                    current_user,
-                    'pg_catalog.pg_collation',
-                    'SELECT')
-                AND pg_catalog.has_table_privilege(
-                    current_user,
-                    'pg_catalog.pg_opclass',
-                    'SELECT')
-            AND pg_catalog.has_function_privilege(
-                current_user,
-                'pg_catalog.pg_table_size(regclass)',
-                'EXECUTE')
-            AND pg_catalog.has_function_privilege(
-                current_user,
-                'pg_catalog.pg_indexes_size(regclass)',
-                'EXECUTE')
-            AND pg_catalog.has_function_privilege(
-                current_user,
-                'pg_catalog.pg_total_relation_size(regclass)',
-                'EXECUTE')
-                    AS catalog_metadata_available
-            """;
-
-        Assert.Equal(expected, definition.Sql);
-        Assert.Equal(PostgreSqlSqlCommandKind.SelectCapabilityCheck, definition.Kind);
+        Assert.Equal(2027, definition.Sql.Length);
+        Assert.Equal(
+            "777cb44afb178c299566f1a8c0251e3ab9ba47480bd578b6a339f4d1c24c5a90",
+            Sha256Of(definition.Sql));
     }
 
     [Fact]
@@ -388,16 +347,28 @@ public sealed class PostgreSqlSqlInventoryTests
     }
 
     [Fact]
-    public void C002_ChecksTheThreeSizeFunctionsD001Calls()
+    public void C002_ChecksEveryFunctionD001AndE001Call()
     {
         string sql = Inventory().Resolve(PostgreSqlSqlStatementId.CheckCatalogMetadataAccess).Sql;
 
+        // The three D001 size functions, unchanged by GC-DHI-04E...
         Assert.Contains("'pg_catalog.pg_table_size(regclass)'", sql, StringComparison.Ordinal);
         Assert.Contains("'pg_catalog.pg_indexes_size(regclass)'", sql, StringComparison.Ordinal);
         Assert.Contains("'pg_catalog.pg_total_relation_size(regclass)'", sql, StringComparison.Ordinal);
 
-        // Exactly three function checks, no more.
-        Assert.Equal(3, sql.Split("has_function_privilege").Length - 1);
+        // ...plus exactly the four E001 calls.
+        Assert.Contains("'pg_catalog.pg_relation_size(regclass)'", sql, StringComparison.Ordinal);
+        Assert.Contains("'pg_catalog.pg_get_indexdef(oid,integer,boolean)'", sql, StringComparison.Ordinal);
+        Assert.Contains("'pg_catalog.pg_get_expr(pg_node_tree,oid,boolean)'", sql, StringComparison.Ordinal);
+        Assert.Contains(
+            "'pg_catalog.pg_index_column_has_property(regclass,integer,text)'",
+            sql,
+            StringComparison.Ordinal);
+
+        // Exactly seven function checks, no more. attoptions is read straight from pg_attribute,
+        // so it adds no function call and therefore no privilege check.
+        Assert.Equal(7, sql.Split("has_function_privilege").Length - 1);
+        Assert.DoesNotContain("attoptions", sql, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -575,35 +546,40 @@ public sealed class PostgreSqlSqlInventoryTests
     }
 
     [Theory]
-    [InlineData("pg_index")]
-    [InlineData("pg_attribute")]
     [InlineData("pg_inherits")]
-    [InlineData("pg_am")]
-    [InlineData("pg_collation")]
-    [InlineData("pg_opclass")]
-    [InlineData("pg_stat_all_indexes")]
-    public void AllowlistedRelationsD001DoesNotNeed_AreOnlyPrivilegeChecked_NeverQueried(string relation)
+    public void AllowlistedRelationsNoStatementNeeds_AreOnlyPrivilegeChecked_NeverQueried(string relation)
     {
-        // These relations are named only as string arguments to has_table_privilege: the product
-        // asks PostgreSQL *whether* they are readable and never reads a row from them. Querying
-        // pg_index, pg_attribute, pg_inherits, pg_am, pg_collation or pg_opclass would be index,
-        // column or partition-tree work reserved for GC-DHI-04E.
-        foreach (PostgreSqlSqlStatementDefinition definition in Inventory().Statements)
+        // After GC-DHI-04E only pg_inherits remains privilege-checked without being read: E001
+        // deliberately does not traverse the partition tree, so nothing selects from it. The rest
+        // of the C002 allowlist is now genuinely queried by D001, E001 or E002.
+        foreach (PostgreSqlSqlStatementDefinition definition in Inventory().Statements
+            .Where(statement => statement.Id != PostgreSqlSqlStatementId.CheckCatalogMetadataAccess))
         {
-            Assert.DoesNotContain($"FROM pg_catalog.{relation}", definition.Sql, StringComparison.OrdinalIgnoreCase);
-            Assert.DoesNotContain($"JOIN pg_catalog.{relation}", definition.Sql, StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain(
+                "FROM pg_catalog." + relation,
+                definition.Sql,
+                StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain(
+                "JOIN pg_catalog." + relation,
+                definition.Sql,
+                StringComparison.OrdinalIgnoreCase);
         }
     }
 
     [Fact]
-    public void OnlyC004AndD001QueryRelations_AndOnlyTheOnesTheirGatesAuthorized()
+    public void OnlyC004D001E001AndE002QueryRelations_AndOnlyTheOnesTheirGatesAuthorized()
     {
         // Every FROM clause in the entire productive inventory, and nothing else reads a relation.
         PostgreSqlSqlStatementDefinition[] withFrom = [.. Inventory().Statements
             .Where(statement => statement.Sql.Contains("FROM ", StringComparison.OrdinalIgnoreCase))];
 
         Assert.Equal(
-            [PostgreSqlSqlStatementId.ReadStatisticsReset, PostgreSqlSqlStatementId.ReadTableSnapshots],
+            [
+                PostgreSqlSqlStatementId.ReadStatisticsReset,
+                PostgreSqlSqlStatementId.ReadTableSnapshots,
+                PostgreSqlSqlStatementId.ReadIndexMetadata,
+                PostgreSqlSqlStatementId.ReadIndexUsageStatistics,
+            ],
             withFrom.Select(statement => statement.Id).ToArray());
 
         PostgreSqlSqlStatementDefinition c004 = withFrom[0];
@@ -615,6 +591,24 @@ public sealed class PostgreSqlSqlInventoryTests
         Assert.Contains("FROM pg_catalog.pg_class AS relation", d001.Sql, StringComparison.Ordinal);
         Assert.Contains("INNER JOIN pg_catalog.pg_namespace AS namespace", d001.Sql, StringComparison.Ordinal);
         Assert.Contains("FROM pg_catalog.pg_constraint AS constraint_record", d001.Sql, StringComparison.Ordinal);
+
+        // E001 reads the index catalogs GC-DHI-04E authorizes and no others. pg_inherits is
+        // absent on purpose: descendant traversal is prohibited.
+        PostgreSqlSqlStatementDefinition e001 = withFrom[2];
+        Assert.Contains("FROM pg_catalog.pg_index AS index_record", e001.Sql, StringComparison.Ordinal);
+        Assert.Contains("pg_catalog.pg_class AS index_relation", e001.Sql, StringComparison.Ordinal);
+        Assert.Contains("pg_catalog.pg_class AS table_relation", e001.Sql, StringComparison.Ordinal);
+        Assert.Contains("pg_catalog.pg_namespace AS table_namespace", e001.Sql, StringComparison.Ordinal);
+        Assert.Contains("pg_catalog.pg_am AS access_method", e001.Sql, StringComparison.Ordinal);
+        Assert.Contains("pg_catalog.pg_attribute AS index_attribute", e001.Sql, StringComparison.Ordinal);
+        Assert.Contains("pg_catalog.pg_collation AS collation_record", e001.Sql, StringComparison.Ordinal);
+        Assert.Contains("pg_catalog.pg_opclass AS operator_class", e001.Sql, StringComparison.Ordinal);
+        Assert.DoesNotContain("pg_inherits", e001.Sql, StringComparison.Ordinal);
+        Assert.DoesNotContain("pg_partition_tree", e001.Sql, StringComparison.Ordinal);
+
+        // E002 reads only the per-index statistics view.
+        PostgreSqlSqlStatementDefinition e002 = withFrom[3];
+        Assert.Contains("FROM pg_catalog.pg_stat_all_indexes AS statistics", e002.Sql, StringComparison.Ordinal);
     }
 
     [Fact]

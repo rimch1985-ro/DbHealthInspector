@@ -14,8 +14,8 @@ internal enum PostgreSqlSqlParameterType
 
     /// <summary>
     /// An ordered, non-null array of text values, bound as
-    /// <c>NpgsqlDbType.Array | NpgsqlDbType.Text</c>. Used only by D001's two schema-filter
-    /// parameters; an empty array is valid and means "no filter of that kind".
+    /// <c>NpgsqlDbType.Array | NpgsqlDbType.Text</c>. Used by the two schema-filter parameters of
+    /// D001, E001 and E002; an empty array is valid and means "no filter of that kind".
     /// </summary>
     TextArray,
 }
