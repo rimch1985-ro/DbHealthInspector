@@ -3,7 +3,7 @@
 **Backlog version:** 0.1  
 **Status:** Approved baseline  
 **Target:** v0.1.0  
-**Current next gate:** Human review of the corrected GC-DHI-04E definition
+**Current next gate:** Human review of the integrated GC-DHI-04F definition
 
 ---
 
@@ -369,11 +369,11 @@ integrated, approved and closed.
 **Priority:** P0  
 **Gate:** GC-DHI-04E  
 **Definition:** `docs/gates/GC-DHI-04E_DEFINITION.md`  
-**Status:** Defined; implementation awaiting human authorization
+**Status:** Completed; implemented, integrated, approved and closed on 2026-08-10
 
 ### Acceptance criteria
 
-The frozen future implementation:
+The integrated implementation:
 
 - executes E001 required structural metadata independently of optional usage
   statistics;
@@ -397,12 +397,11 @@ The frozen future implementation:
 - returns a defensive ordinally sorted collection of existing Core
   `IndexSnapshot` values.
 
-After implementation, the productive inventory will contain B001–B003,
+The productive inventory contains B001–B003,
 C001–C004, D001 and E001–E002: ten statements, eight command kinds, two
 parameter types and ten frozen contracts. The validator will accept exactly
-ten of 800 ID/kind/SQL combinations. PG-05 is defined but is not implemented
-or completed. Its D1-corrected definition awaits human review and explicit
-implementation authorization.
+ten of 800 ID/kind/SQL combinations. PG-05 was implemented, integrated through
+pull request `#7`, approved and closed on 2026-08-10.
 
 ---
 
@@ -411,6 +410,8 @@ implementation authorization.
 **Priority:** P0
 **Gate:** GC-DHI-04B and final verification in GC-DHI-04F
 **Definition:** `docs/gates/GC-DHI-04B_DEFINITION.md`
+**Final definition:** `docs/gates/GC-DHI-04F_DEFINITION.md`
+**Status:** Foundation completed; full completion remains assigned to GC-DHI-04F and is not yet completed
 
 GC-DHI-04B is scoped to the SQL-inventory and fail-closed validator foundation.
 PG-06 is completed only after the composed inventory and safety contracts are
@@ -423,6 +424,12 @@ verified in GC-DHI-04F.
 - No user-provided SQL is accepted.
 - Schema filters are parameterized.
 - Safety documentation references the mechanism.
+
+GC-DHI-04F is now defined. It must preserve exactly B001–B003, C001–C004,
+D001 and E001–E002, compose one validated schema filter, and establish the
+permanent PostgreSQL 15/18 and package/safety evidence before PG-06 can be
+marked completed. Definition integration does not complete PG-06 or authorize
+GC-DHI-04F implementation.
 
 ---
 

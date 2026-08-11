@@ -201,7 +201,7 @@ implemented, integrated, approved and closed.
 
 **Backlog:** `PG-05 — Implement index snapshot query`  
 **Definition:** `docs/gates/GC-DHI-04E_DEFINITION.md`  
-**Authorization:** D1-corrected definition integrated; implementation not authorized
+**Authorization:** implemented, integrated, approved and closed on 2026-08-10
 
 Scope:
 
@@ -218,16 +218,16 @@ Scope:
 
 No query plans or `pg_stat_statements` dependency are permitted.
 
-The frozen future inventory contains exactly ten statements: B001–B003,
+The integrated inventory contains exactly ten statements: B001–B003,
 C001–C004, D001 and E001–E002. E001 is the required structural query with the
 new `SelectIndexMetadata` kind; E002 is optional usage statistics and reuses
-`SelectStatistics`. GC-DHI-04E keeps exactly two parameter types, freezes ten
-contracts and the 10/790 validator matrix, and expands C002 with only the four
-functions E001 calls. C003 remains unchanged. PG-05 is defined but is not
-implemented or completed.
+`SelectStatistics`. GC-DHI-04E kept exactly two parameter types, froze ten
+contracts and the 10/790 validator matrix, and expanded C002 with only the four
+functions E001 calls. C003 remains unchanged. PG-05 is implemented, integrated,
+approved and closed.
 
 D1-01 corrects E001 to 31 typed columns by reading each key attribute's
-nullable ordered `pg_attribute.attoptions` array directly. The future mapper
+nullable ordered `pg_attribute.attoptions` array directly. The mapper
 uses an injective length-prefixed encoding of qualified operator-class identity
 plus stored options in the existing Core `OperatorClass` string. No C002,
 inventory, parameter-type or Core change results.
@@ -240,7 +240,8 @@ different operator-class option values and stored orders cannot collapse.
 
 ### GC-DHI-04F — Snapshot Provider Composition and PostgreSQL Verification
 
-**Authorization:** unauthorized until GC-DHI-04E is approved and closed
+**Definition:** `docs/gates/GC-DHI-04F_DEFINITION.md`  
+**Authorization:** definition integrated; implementation awaits separate human authorization
 
 Scope:
 
@@ -259,6 +260,12 @@ Scope:
 
 Exit result: an adapter ready for later composition, still without CLI behavior
 or executable diagnostic rules.
+
+The definition freezes one exported provider type, one connection/session/
+transaction per capture, exact capability branching, one schema filter,
+cross-object closure, atomic/deterministic composition, concurrent calls with
+coordinated disposal, zero new SQL, PostgreSQL 15.18/18.4 pinned verification
+and final PG-06 acceptance evidence. It does not authorize implementation.
 
 ## 5. Dependencies
 
@@ -541,7 +548,6 @@ before its integration:
 - precedence of connection sources;
 - console rendering;
 - JSON mapping;
-- permanent PostgreSQL 15/18 CI matrix;
 - exact minimum role permissions after real queries are validated;
 - final hostname policy for reports.
 
@@ -554,13 +560,15 @@ the typed operation boundary are resolved by `GC-DHI-04C_DEFINITION.md` and
 are no longer deferred. D001, the C002 expansion, exact schema filters,
 relation and partition precedence, nullable estimates, size semantics,
 primary-key derivation, ordinal ordering, validation and test strategy are
-resolved by `GC-DHI-04D_DEFINITION.md`. The remaining decisions do not
-authorize or start GC-DHI-04E implementation. E001/E002 separation, exact SQL,
+resolved by `GC-DHI-04D_DEFINITION.md`. E001/E002 separation, exact SQL,
 C002 expansion, unchanged C003 relationship, index grouping, ordering
 normalization, qualified collation/operator-class identities, ordered
 operator-class options, partitioned-index policy, deterministic invalid-index
 fixture and readiness/liveness limitation are resolved by
-`GC-DHI-04E_DEFINITION.md`.
+`GC-DHI-04E_DEFINITION.md`. Provider API, ownership, concurrency, exact
+composition, cross-object closure, unsupported-version behavior, the pinned
+PostgreSQL 15.18/18.4 matrix and final PG-06 boundary are resolved by
+`GC-DHI-04F_DEFINITION.md`; implementation remains separately unauthorized.
 
 ## 18. Authorization status
 
@@ -570,15 +578,15 @@ fixture and readiness/liveness limitation are resolved by
 | GC-DHI-04B — Read-Only Session and SQL Safety Kernel | Approved and closed |
 | GC-DHI-04C — Server Metadata and Capability Probe | Approved and closed |
 | GC-DHI-04D — Table Snapshot Query and Mapping | Approved and closed |
-| GC-DHI-04E — Index Snapshot Query and Mapping | Definition corrected; implementation not authorized |
-| GC-DHI-04F — Snapshot Provider Composition and PostgreSQL Verification | Unauthorized |
+| GC-DHI-04E — Index Snapshot Query and Mapping | Approved and closed |
+| GC-DHI-04F — Snapshot Provider Composition and PostgreSQL Verification | Defined; awaiting human implementation authorization |
 
-No GC-DHI-04E implementation is started or authorized by this document. The
-only next authorized action is human review of the corrected GC-DHI-04E
-definition. GC-DHI-04F remains unauthorized, unimplemented and not started.
+GC-DHI-04E and PG-05 are completed. GC-DHI-04F implementation remains
+unauthorized, unimplemented and not started. PG-06 full completion remains
+assigned to GC-DHI-04F and is not yet completed.
 
 ```text
-GC-DHI-04E DEFINITION CORRECTED — AWAITING HUMAN IMPLEMENTATION AUTHORIZATION
-Human review of the corrected GC-DHI-04E definition.
-No GC-DHI-04E implementation is authorized.
+GC-DHI-04F DEFINED — AWAITING HUMAN IMPLEMENTATION AUTHORIZATION
+Await human review of the integrated GC-DHI-04F definition.
+No GC-DHI-04F implementation is authorized.
 ```
