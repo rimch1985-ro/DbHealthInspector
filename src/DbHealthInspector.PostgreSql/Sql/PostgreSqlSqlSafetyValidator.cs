@@ -72,7 +72,7 @@ internal static class PostgreSqlSqlSafetyValidator
     /// <summary>
     /// Validates <paramref name="definition"/> through both layers: first every structural, token,
     /// shape and placeholder rule, then the frozen statement contract. Throws on the first
-    /// violation found; returns normally only for one of the eight canonical definitions.
+    /// violation found; returns normally only for one of the ten canonical definitions.
     /// </summary>
     /// <exception cref="ArgumentNullException"><paramref name="definition"/> is <see langword="null"/>.</exception>
     /// <exception cref="PostgreSqlSqlSafetyException">The statement violates a safety rule.</exception>
@@ -139,7 +139,7 @@ internal static class PostgreSqlSqlSafetyValidator
     }
 
     /// <summary>
-    /// The complete frozen inventory contract — the only eight (id, kind, SQL, parameters)
+    /// The complete frozen inventory contract — the only ten (id, kind, SQL, parameters)
     /// combinations that exist.
     /// </summary>
     /// <remarks>
@@ -190,16 +190,28 @@ internal static class PostgreSqlSqlSafetyValidator
             PostgreSqlSqlInventory.ReadTableSnapshotsSql,
             PostgreSqlSqlParameterType.TextArray,
             PostgreSqlSqlParameterType.TextArray),
+
+        [PostgreSqlSqlStatementId.ReadIndexMetadata] = new(
+            PostgreSqlSqlCommandKind.SelectIndexMetadata,
+            PostgreSqlSqlInventory.ReadIndexMetadataSql,
+            PostgreSqlSqlParameterType.TextArray,
+            PostgreSqlSqlParameterType.TextArray),
+
+        [PostgreSqlSqlStatementId.ReadIndexUsageStatistics] = new(
+            PostgreSqlSqlCommandKind.SelectStatistics,
+            PostgreSqlSqlInventory.ReadIndexUsageStatisticsSql,
+            PostgreSqlSqlParameterType.TextArray,
+            PostgreSqlSqlParameterType.TextArray),
     };
 
     /// <summary>
-    /// Layer 2. Requires the whole (id, kind, SQL, parameters) tuple to be one of the eight frozen
+    /// Layer 2. Requires the whole (id, kind, SQL, parameters) tuple to be one of the ten frozen
     /// combinations. Every other combination — including a canonical SQL declared under the wrong
     /// kind, a canonical kind carrying different SQL, or a single added, removed or altered token
     /// — is rejected.
     /// </summary>
     /// <exception cref="PostgreSqlSqlSafetyException">
-    /// The statement is not one of the eight canonical definitions.
+    /// The statement is not one of the ten canonical definitions.
     /// </exception>
     private static void ValidateFrozenStatementContract(PostgreSqlSqlStatementDefinition definition)
     {
@@ -624,7 +636,8 @@ internal static class PostgreSqlSqlSafetyValidator
                 or PostgreSqlSqlCommandKind.SelectServerIdentity
                 or PostgreSqlSqlCommandKind.SelectCapabilityCheck
                 or PostgreSqlSqlCommandKind.SelectStatistics
-                or PostgreSqlSqlCommandKind.SelectTableMetadata =>
+                or PostgreSqlSqlCommandKind.SelectTableMetadata
+                or PostgreSqlSqlCommandKind.SelectIndexMetadata =>
                 observed == PostgreSqlSqlCommandKind.SelectVerification,
             _ => false,
         };

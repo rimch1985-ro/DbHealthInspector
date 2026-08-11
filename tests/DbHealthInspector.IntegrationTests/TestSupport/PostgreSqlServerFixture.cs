@@ -250,6 +250,122 @@ public sealed class PostgreSqlServerFixture : IAsyncLifetime
         }
 
         await CreateRelationZooAsync(connection, cancellationToken);
+        await CreateIndexZooAsync(connection, cancellationToken);
+    }
+
+    /// <summary>
+    /// The schema holding the GC-DHI-04E index zoo: one index of every shape E001 must map.
+    /// </summary>
+    /// <remarks>
+    /// Deliberately a schema of its own. The GC-DHI-04D relation zoo is asserted against exact
+    /// table counts, and adding indexes there would change what those tests observe.
+    /// </remarks>
+    public const string IndexSchema = "dbhealth_indexes";
+
+    /// <summary>A second index schema, so include/exclude filters have something to choose between.</summary>
+    public const string SecondaryIndexSchema = "dbhealth_indexes_secondary";
+
+    /// <summary>The table every zoo index is defined on.</summary>
+    public const string IndexedTable = "indexed_orders";
+
+    /// <summary>Rows loaded into <see cref="IndexedTable"/> and analyzed, so scans are measurable.</summary>
+    public const long IndexedRowCount = 2000;
+
+    /// <summary>
+    /// Builds one index of every shape GC-DHI-04E §25 requires.
+    /// </summary>
+    /// <remarks>
+    /// Every object here is synthetic fixture DDL and every access method used is a PostgreSQL
+    /// built-in: no external extension is installed to reach any of these shapes.
+    /// </remarks>
+    private static async Task CreateIndexZooAsync(NpgsqlConnection connection, CancellationToken cancellationToken)
+    {
+        string[] statements =
+        [
+            $"CREATE SCHEMA \"{IndexSchema}\"",
+            $"CREATE SCHEMA \"{SecondaryIndexSchema}\"",
+
+            $"""
+             CREATE TABLE "{IndexSchema}"."{IndexedTable}" (
+                 id integer NOT NULL,
+                 code text NOT NULL,
+                 label text,
+                 amount integer NOT NULL,
+                 quantity integer NOT NULL,
+                 document jsonb,
+                 span int4range,
+                 CONSTRAINT indexed_orders_pkey PRIMARY KEY (id)
+             )
+             """,
+
+            // A unique constraint and an exclusion constraint, each backing an index.
+            $"ALTER TABLE \"{IndexSchema}\".\"{IndexedTable}\" ADD CONSTRAINT indexed_orders_code_key UNIQUE (code)",
+            $"ALTER TABLE \"{IndexSchema}\".\"{IndexedTable}\" ADD CONSTRAINT indexed_orders_span_excl EXCLUDE USING gist (span WITH &&)",
+
+            // B-tree shapes.
+            $"CREATE INDEX zoo_btree_simple ON \"{IndexSchema}\".\"{IndexedTable}\" (amount)",
+            $"CREATE INDEX zoo_btree_multi ON \"{IndexSchema}\".\"{IndexedTable}\" (amount ASC NULLS LAST, quantity DESC NULLS FIRST)",
+            $"CREATE UNIQUE INDEX zoo_unique_nnd ON \"{IndexSchema}\".\"{IndexedTable}\" (label) NULLS NOT DISTINCT",
+            $"CREATE INDEX zoo_include ON \"{IndexSchema}\".\"{IndexedTable}\" (amount) INCLUDE (quantity, code)",
+            $"CREATE INDEX zoo_expression ON \"{IndexSchema}\".\"{IndexedTable}\" (lower(code))",
+            $"CREATE INDEX zoo_mixed ON \"{IndexSchema}\".\"{IndexedTable}\" (amount, lower(code))",
+            $"CREATE INDEX zoo_partial ON \"{IndexSchema}\".\"{IndexedTable}\" (amount) WHERE quantity > 10",
+            $"CREATE INDEX zoo_collation ON \"{IndexSchema}\".\"{IndexedTable}\" (code COLLATE \"C\")",
+            $"CREATE INDEX zoo_opclass ON \"{IndexSchema}\".\"{IndexedTable}\" (code text_pattern_ops)",
+
+            // Non-B-tree access methods: each is non-orderable, exercising the normalization path.
+            $"CREATE INDEX zoo_hash ON \"{IndexSchema}\".\"{IndexedTable}\" USING hash (amount)",
+            $"CREATE INDEX zoo_gin ON \"{IndexSchema}\".\"{IndexedTable}\" USING gin (document)",
+            $"CREATE INDEX zoo_gist ON \"{IndexSchema}\".\"{IndexedTable}\" USING gist (span)",
+            $"CREATE INDEX zoo_spgist ON \"{IndexSchema}\".\"{IndexedTable}\" USING spgist (span)",
+            $"CREATE INDEX zoo_brin ON \"{IndexSchema}\".\"{IndexedTable}\" USING brin (amount)",
+
+            // Operator-class options: same opclass, different stored attoptions.
+            $"CREATE INDEX zoo_opts_32 ON \"{IndexSchema}\".\"{IndexedTable}\" USING brin (amount int4_minmax_multi_ops(values_per_range=32))",
+            $"CREATE INDEX zoo_opts_64 ON \"{IndexSchema}\".\"{IndexedTable}\" USING brin (amount int4_minmax_multi_ops(values_per_range=64))",
+
+            // Operator-class options: identical option names *and* identical values, written in
+            // opposite order. PostgreSQL stores attoptions in the order the DDL supplied them, so
+            // these two indexes differ only by that order — the case that proves the encoding
+            // preserves stored order rather than sorting it (GC-DHI-04E-C1, R1-04). int4_bloom_ops
+            // is a built-in BRIN operator class taking two options; no extension is involved.
+            $"CREATE INDEX zoo_opts_order_ab ON \"{IndexSchema}\".\"{IndexedTable}\" USING brin (amount int4_bloom_ops(n_distinct_per_range=16, false_positive_rate=0.05))",
+            $"CREATE INDEX zoo_opts_order_ba ON \"{IndexSchema}\".\"{IndexedTable}\" USING brin (amount int4_bloom_ops(false_positive_rate=0.05, n_distinct_per_range=16))",
+
+            // A partitioned table with one partition: a virtual index root plus its physical child.
+            $"""
+             CREATE TABLE "{IndexSchema}".partitioned_orders (
+                 id integer NOT NULL,
+                 region text NOT NULL
+             ) PARTITION BY LIST (region)
+             """,
+            $"CREATE TABLE \"{IndexSchema}\".partitioned_orders_emea PARTITION OF \"{IndexSchema}\".partitioned_orders FOR VALUES IN ('emea')",
+            $"CREATE INDEX zoo_partitioned ON \"{IndexSchema}\".partitioned_orders (region)",
+
+            // An index created ON ONLY the partitioned parent is invalid until every partition has
+            // a matching index attached. Deterministic: no concurrency, no race, no catalog write.
+            $"CREATE INDEX zoo_invalid_root ON ONLY \"{IndexSchema}\".partitioned_orders (id)",
+
+            // The secondary schema, so include/exclude filters can select between them.
+            $"CREATE TABLE \"{SecondaryIndexSchema}\".secondary_indexed (id integer PRIMARY KEY)",
+
+            // Exactly one NULL label: zoo_unique_nnd is UNIQUE ... NULLS NOT DISTINCT, so a second
+            // NULL would collide with the first. One null still exercises the contract.
+            $"INSERT INTO \"{IndexSchema}\".\"{IndexedTable}\" (id, code, label, amount, quantity, document, span) "
+                + $"SELECT g, 'code-' || g, CASE WHEN g = 1 THEN NULL ELSE 'label-' || g END, g, g % 100, "
+                + $"jsonb_build_object('k', g), int4range(g * 10, g * 10 + 5) FROM generate_series(1, {IndexedRowCount}) g",
+            $"ANALYZE \"{IndexSchema}\".\"{IndexedTable}\"",
+
+            $"GRANT USAGE ON SCHEMA \"{IndexSchema}\" TO \"{InspectionRoleName}\"",
+            $"GRANT USAGE ON SCHEMA \"{SecondaryIndexSchema}\" TO \"{InspectionRoleName}\"",
+            $"GRANT SELECT ON \"{IndexSchema}\".\"{IndexedTable}\" TO \"{InspectionRoleName}\"",
+        ];
+
+        foreach (string statement in statements)
+        {
+            await using var command = new NpgsqlCommand(statement, connection);
+            await command.ExecuteNonQueryAsync(cancellationToken);
+        }
     }
 
     /// <summary>
@@ -388,6 +504,171 @@ public sealed class PostgreSqlServerFixture : IAsyncLifetime
         Assert.True(await reader.ReadAsync(cancellationToken));
 
         return (reader.GetInt64(0), reader.GetInt64(1), reader.GetInt64(2));
+    }
+
+    // --- Index observation helpers (GC-DHI-04E) --------------------------------------------------
+
+    /// <summary>
+    /// Reads one index attribute's raw <c>attoptions</c> straight from <c>pg_attribute</c>, out of
+    /// band, so a test can compare the mapped structural identity against what the catalog stores.
+    /// </summary>
+    public async Task<IReadOnlyList<string>> ReadOperatorClassOptionsAsync(
+        string schema,
+        string indexName,
+        CancellationToken cancellationToken)
+    {
+        await using NpgsqlConnection connection = await OpenAdminConnectionAsync(cancellationToken);
+        await using var command = new NpgsqlCommand(
+            """
+            SELECT COALESCE(index_attribute.attoptions, '{}'::text[])
+            FROM pg_catalog.pg_class AS index_relation
+            INNER JOIN pg_catalog.pg_namespace AS index_namespace
+                ON index_namespace.oid = index_relation.relnamespace
+            INNER JOIN pg_catalog.pg_attribute AS index_attribute
+                ON index_attribute.attrelid = index_relation.oid
+               AND index_attribute.attnum = 1
+            WHERE index_namespace.nspname = @schema
+              AND index_relation.relname = @index
+            """,
+            connection);
+        command.Parameters.AddWithValue("schema", schema);
+        command.Parameters.AddWithValue("index", indexName);
+
+        object? value = await command.ExecuteScalarAsync(cancellationToken);
+        return (string[])value!;
+    }
+
+    /// <summary>
+    /// Runs one of the productive statements verbatim, bound with the schema filter it declares,
+    /// and returns how many rows it produced.
+    /// </summary>
+    /// <remarks>
+    /// Takes the SQL text from the caller so a test can pass the inventory constant itself rather
+    /// than a copy, proving the exact frozen bytes execute against a real server.
+    /// </remarks>
+    public static async Task<long> CountRowsAsync(
+        NpgsqlConnection connection,
+        string sql,
+        string includedSchema,
+        CancellationToken cancellationToken)
+    {
+        await using var command = new NpgsqlCommand(sql, connection);
+        command.Parameters.Add(new NpgsqlParameter
+        {
+            NpgsqlDbType = NpgsqlDbType.Array | NpgsqlDbType.Text,
+            Value = new[] { includedSchema },
+        });
+        command.Parameters.Add(new NpgsqlParameter
+        {
+            NpgsqlDbType = NpgsqlDbType.Array | NpgsqlDbType.Text,
+            Value = Array.Empty<string>(),
+        });
+
+        var rows = 0L;
+        await using NpgsqlDataReader reader = await command.ExecuteReaderAsync(cancellationToken);
+        while (await reader.ReadAsync(cancellationToken))
+        {
+            rows++;
+        }
+
+        return rows;
+    }
+
+    /// <summary>
+    /// Runs a parameterless productive statement returning one boolean, verbatim.
+    /// </summary>
+    public static async Task<bool> ReadBooleanAsync(
+        NpgsqlConnection connection,
+        string sql,
+        CancellationToken cancellationToken)
+    {
+        await using var command = new NpgsqlCommand(sql, connection);
+        return (bool)(await command.ExecuteScalarAsync(cancellationToken))!;
+    }
+
+    /// <summary>
+    /// Creates a throwaway index on the zoo table that nothing has scanned yet.
+    /// </summary>
+    public async Task CreateNeverScannedIndexAsync(string indexName, CancellationToken cancellationToken)
+    {
+        await using NpgsqlConnection connection = await OpenAdminConnectionAsync(cancellationToken);
+        await using var create = new NpgsqlCommand(
+            $"CREATE INDEX {indexName} ON \"{IndexSchema}\".\"{IndexedTable}\" (quantity)", connection);
+        await create.ExecuteNonQueryAsync(cancellationToken);
+
+        // Reset the per-index counters so "zero" means this index, not a leftover from a previous
+        // run of the same fixture.
+        await using var reset = new NpgsqlCommand("SELECT pg_stat_reset()", connection);
+        await reset.ExecuteScalarAsync(cancellationToken);
+        await FlushStatisticsAsync(connection, cancellationToken);
+    }
+
+    public async Task DropIndexAsync(string indexName, CancellationToken cancellationToken)
+    {
+        await using NpgsqlConnection connection = await OpenAdminConnectionAsync(cancellationToken);
+        await using var command = new NpgsqlCommand(
+            $"DROP INDEX IF EXISTS \"{IndexSchema}\".{indexName}", connection);
+        await command.ExecuteNonQueryAsync(cancellationToken);
+    }
+
+    /// <summary>
+    /// Forces a real index scan on <paramref name="indexName"/> and reports whether the planner
+    /// actually used it.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// This is the test suite deliberately reading business rows — something the product never
+    /// does. Sequential scans are disabled for the session so the planner has to choose the index
+    /// on a table this small, and the plan is inspected to confirm it did: a positive counter
+    /// proves nothing if the index was never actually used.
+    /// </para>
+    /// <para>
+    /// Statistics are then flushed with <c>pg_stat_force_next_flush()</c>, which makes the
+    /// counter visible deterministically instead of waiting for the collector.
+    /// </para>
+    /// </remarks>
+    public async Task<bool> ForceIndexScanAsync(string indexName, CancellationToken cancellationToken)
+    {
+        await using NpgsqlConnection connection = await OpenAdminConnectionAsync(cancellationToken);
+
+        await using (var settings = new NpgsqlCommand("SET enable_seqscan = off", connection))
+        {
+            await settings.ExecuteNonQueryAsync(cancellationToken);
+        }
+
+        var usedTheIndex = false;
+        await using (var plan = new NpgsqlCommand(
+            $"EXPLAIN (FORMAT TEXT) SELECT id FROM \"{IndexSchema}\".\"{IndexedTable}\" WHERE quantity = 42",
+            connection))
+        {
+            await using NpgsqlDataReader reader = await plan.ExecuteReaderAsync(cancellationToken);
+            while (await reader.ReadAsync(cancellationToken))
+            {
+                if (reader.GetString(0).Contains(indexName, StringComparison.Ordinal))
+                {
+                    usedTheIndex = true;
+                }
+            }
+        }
+
+        // The scan itself, which is what advances idx_scan.
+        await using (var scan = new NpgsqlCommand(
+            $"SELECT count(*) FROM \"{IndexSchema}\".\"{IndexedTable}\" WHERE quantity = 42", connection))
+        {
+            await scan.ExecuteScalarAsync(cancellationToken);
+        }
+
+        await FlushStatisticsAsync(connection, cancellationToken);
+        return usedTheIndex;
+    }
+
+    /// <summary>
+    /// Makes this backend's pending statistics visible to every other session immediately.
+    /// </summary>
+    private static async Task FlushStatisticsAsync(NpgsqlConnection connection, CancellationToken cancellationToken)
+    {
+        await using var flush = new NpgsqlCommand("SELECT pg_stat_force_next_flush()", connection);
+        await flush.ExecuteScalarAsync(cancellationToken);
     }
 
     // --- Empirical relation-state discovery (GC-DHI-04D-C1, R1-09) -------------------------------

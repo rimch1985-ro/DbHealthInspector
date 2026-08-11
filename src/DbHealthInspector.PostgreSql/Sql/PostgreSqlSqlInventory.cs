@@ -8,8 +8,8 @@ namespace DbHealthInspector.PostgreSql.Sql;
 /// </summary>
 /// <remarks>
 /// <para>
-/// GC-DHI-04D freezes the productive inventory at exactly eight statements, in this order: the
-/// three session-initialization statements — B001
+/// GC-DHI-04E freezes the productive inventory at exactly ten statements, in this order: the three
+/// session-initialization statements — B001
 /// (<see cref="PostgreSqlSqlStatementId.SetTransactionReadOnly"/>), B002
 /// (<see cref="PostgreSqlSqlStatementId.ApplyLocalTimeouts"/>) and B003
 /// (<see cref="PostgreSqlSqlStatementId.VerifySessionState"/>) — followed by the four
@@ -19,19 +19,21 @@ namespace DbHealthInspector.PostgreSql.Sql;
 /// (<see cref="PostgreSqlSqlStatementId.CheckUsageStatisticsAccess"/>) and C004
 /// (<see cref="PostgreSqlSqlStatementId.ReadStatisticsReset"/>) — and finally the single
 /// table-snapshot query D001
-/// (<see cref="PostgreSqlSqlStatementId.ReadTableSnapshots"/>).
+/// (<see cref="PostgreSqlSqlStatementId.ReadTableSnapshots"/>), structural index query E001
+/// (<see cref="PostgreSqlSqlStatementId.ReadIndexMetadata"/>) and optional usage-statistics query
+/// E002 (<see cref="PostgreSqlSqlStatementId.ReadIndexUsageStatistics"/>).
 /// </para>
 /// <para>
 /// B001–B003 are reserved to the session runner and are unreachable from an authorized operation;
-/// C001–C004 and D001 are the typed operations an authorized callback may run. A ninth productive
-/// statement — including any index query — requires a later authorised gate.
+/// C001–C004, D001 and the composite E001/E002 index-snapshot read are the typed operations an
+/// authorized callback may run. An eleventh productive statement requires a later authorised gate.
 /// </para>
 /// <para>
 /// There is no lookup by SQL text, no runtime registration, no external SQL file, no assembly
 /// reflection scan and no mutable collection reachable from outside. Every definition passes both
 /// layers of <see cref="PostgreSqlSqlSafetyValidator"/> during construction — the lexical scan and
 /// the frozen statement contract — so an inventory instance that exists at all is one whose every
-/// statement has already been proven to be one of the eight canonical definitions. The executor
+/// statement has already been proven to be one of the ten canonical definitions. The executor
 /// therefore never re-parses SQL on the hot path.
 /// </para>
 /// </remarks>
@@ -170,6 +172,22 @@ internal sealed class PostgreSqlSqlInventory
             current_user,
             'pg_catalog.pg_total_relation_size(regclass)',
             'EXECUTE')
+        AND pg_catalog.has_function_privilege(
+            current_user,
+            'pg_catalog.pg_relation_size(regclass)',
+            'EXECUTE')
+        AND pg_catalog.has_function_privilege(
+            current_user,
+            'pg_catalog.pg_get_indexdef(oid,integer,boolean)',
+            'EXECUTE')
+        AND pg_catalog.has_function_privilege(
+            current_user,
+            'pg_catalog.pg_get_expr(pg_node_tree,oid,boolean)',
+            'EXECUTE')
+        AND pg_catalog.has_function_privilege(
+            current_user,
+            'pg_catalog.pg_index_column_has_property(regclass,integer,text)',
+            'EXECUTE')
                 AS catalog_metadata_available
         """;
 
@@ -273,6 +291,231 @@ internal sealed class PostgreSqlSqlInventory
         """;
 
     /// <summary>
+    /// E001 — one metadata row per index attribute. Frozen character-for-character by
+    /// GC-DHI-04E §9. It reads <c>pg_catalog</c> index metadata plus
+    /// <c>pg_relation_size</c>, <c>pg_get_indexdef</c>, <c>pg_get_expr</c> and
+    /// <c>pg_index_column_has_property</c> only: no business row, no <c>COUNT(*)</c>, no
+    /// dynamic identifier, no concatenated schema name, and no descendant aggregation. The two
+    /// schema filters arrive exclusively as bound <c>text[]</c> parameters.
+    /// </summary>
+    internal const string ReadIndexMetadataSql = """
+        SELECT
+            table_namespace.nspname::text
+                AS schema_name,
+            table_relation.relname::text
+                AS table_name,
+            index_relation.relname::text
+                AS index_name,
+            access_method.amname::text
+                AS access_method,
+            index_relation.relkind::text
+                AS index_relation_kind,
+            index_relation.relispartition
+                AS is_index_partition,
+            index_record.indnatts::integer
+                AS attribute_count,
+            index_record.indnkeyatts::integer
+                AS key_attribute_count,
+            index_attribute.attnum::integer
+                AS attribute_position,
+            (index_attribute.attnum <= index_record.indnkeyatts)
+                AS is_key,
+            CASE
+                WHEN index_record.indkey[index_attribute.attnum - 1] <> 0
+                    THEN table_attribute.attname::text
+                ELSE NULL::text
+            END
+                AS column_name,
+            CASE
+                WHEN index_attribute.attnum <= index_record.indnkeyatts
+                     AND index_record.indkey[index_attribute.attnum - 1] = 0
+                    THEN pg_catalog.pg_get_indexdef(
+                        index_relation.oid,
+                        index_attribute.attnum,
+                        false)
+                ELSE NULL::text
+            END
+                AS expression,
+            collation_namespace.nspname::text
+                AS collation_schema,
+            collation_record.collname::text
+                AS collation_name,
+            operator_class_namespace.nspname::text
+                AS operator_class_schema,
+            operator_class.opcname::text
+                AS operator_class_name,
+            CASE
+                WHEN index_attribute.attnum <= index_record.indnkeyatts
+                    THEN index_attribute.attoptions
+                ELSE NULL::text[]
+            END
+                AS operator_class_options,
+            CASE
+                WHEN index_attribute.attnum <= index_record.indnkeyatts
+                    THEN pg_catalog.pg_index_column_has_property(
+                        index_relation.oid,
+                        index_attribute.attnum,
+                        'orderable')
+                ELSE NULL::boolean
+            END
+                AS is_orderable,
+            CASE
+                WHEN index_attribute.attnum <= index_record.indnkeyatts
+                    THEN pg_catalog.pg_index_column_has_property(
+                        index_relation.oid,
+                        index_attribute.attnum,
+                        'asc')
+                ELSE NULL::boolean
+            END
+                AS is_ascending,
+            CASE
+                WHEN index_attribute.attnum <= index_record.indnkeyatts
+                    THEN pg_catalog.pg_index_column_has_property(
+                        index_relation.oid,
+                        index_attribute.attnum,
+                        'desc')
+                ELSE NULL::boolean
+            END
+                AS is_descending,
+            CASE
+                WHEN index_attribute.attnum <= index_record.indnkeyatts
+                    THEN pg_catalog.pg_index_column_has_property(
+                        index_relation.oid,
+                        index_attribute.attnum,
+                        'nulls_first')
+                ELSE NULL::boolean
+            END
+                AS nulls_first,
+            CASE
+                WHEN index_attribute.attnum <= index_record.indnkeyatts
+                    THEN pg_catalog.pg_index_column_has_property(
+                        index_relation.oid,
+                        index_attribute.attnum,
+                        'nulls_last')
+                ELSE NULL::boolean
+            END
+                AS nulls_last,
+            CASE
+                WHEN index_record.indpred IS NULL
+                    THEN NULL::text
+                ELSE pg_catalog.pg_get_expr(
+                    index_record.indpred,
+                    index_record.indrelid,
+                    false)
+            END
+                AS partial_predicate,
+            index_record.indisunique
+                AS is_unique,
+            CASE
+                WHEN index_record.indisunique
+                    THEN index_record.indnullsnotdistinct
+                ELSE NULL::boolean
+            END
+                AS nulls_not_distinct,
+            index_record.indisprimary
+                AS is_primary_key,
+            EXISTS (
+                SELECT 1
+                FROM pg_catalog.pg_constraint AS constraint_record
+                WHERE constraint_record.conindid = index_relation.oid
+                  AND constraint_record.contype IN ('p', 'u', 'x')
+            )
+                AS backs_constraint,
+            index_record.indisvalid
+                AS is_valid,
+            index_record.indisready
+                AS is_ready,
+            index_record.indislive
+                AS is_live,
+            CASE index_relation.relkind
+                WHEN 'i' THEN pg_catalog.pg_relation_size(index_relation.oid)
+                WHEN 'I' THEN 0::bigint
+            END
+                AS size_bytes
+        FROM pg_catalog.pg_index AS index_record
+        INNER JOIN pg_catalog.pg_class AS index_relation
+            ON index_relation.oid = index_record.indexrelid
+        INNER JOIN pg_catalog.pg_class AS table_relation
+            ON table_relation.oid = index_record.indrelid
+        INNER JOIN pg_catalog.pg_namespace AS table_namespace
+            ON table_namespace.oid = table_relation.relnamespace
+        INNER JOIN pg_catalog.pg_am AS access_method
+            ON access_method.oid = index_relation.relam
+        INNER JOIN pg_catalog.pg_attribute AS index_attribute
+            ON index_attribute.attrelid = index_relation.oid
+           AND index_attribute.attnum > 0
+           AND index_attribute.attnum <= index_record.indnatts
+           AND NOT index_attribute.attisdropped
+        LEFT JOIN pg_catalog.pg_attribute AS table_attribute
+            ON table_attribute.attrelid = table_relation.oid
+           AND table_attribute.attnum =
+               index_record.indkey[index_attribute.attnum - 1]
+           AND NOT table_attribute.attisdropped
+        LEFT JOIN pg_catalog.pg_collation AS collation_record
+            ON index_attribute.attnum <= index_record.indnkeyatts
+           AND collation_record.oid =
+               index_record.indcollation[index_attribute.attnum - 1]
+        LEFT JOIN pg_catalog.pg_namespace AS collation_namespace
+            ON collation_namespace.oid = collation_record.collnamespace
+        LEFT JOIN pg_catalog.pg_opclass AS operator_class
+            ON index_attribute.attnum <= index_record.indnkeyatts
+           AND operator_class.oid =
+               index_record.indclass[index_attribute.attnum - 1]
+        LEFT JOIN pg_catalog.pg_namespace AS operator_class_namespace
+            ON operator_class_namespace.oid = operator_class.opcnamespace
+        WHERE index_relation.relkind IN ('i', 'I')
+          AND table_namespace.nspname <> 'pg_catalog'
+          AND table_namespace.nspname <> 'information_schema'
+          AND table_namespace.nspname NOT LIKE 'pg_toast%'
+          AND table_namespace.nspname NOT LIKE 'pg_temp_%'
+          AND (
+              pg_catalog.cardinality($1::text[]) = 0
+              OR table_namespace.nspname::text = ANY($1::text[])
+          )
+          AND NOT (
+              table_namespace.nspname::text = ANY($2::text[])
+          )
+        ORDER BY
+            table_namespace.nspname,
+            table_relation.relname,
+            index_relation.relname,
+            index_attribute.attnum
+        """;
+
+    /// <summary>
+    /// E002 — one usage-statistics row per index. Frozen character-for-character by
+    /// GC-DHI-04E §10. Executed only when the optional usage-statistics capability is
+    /// available; its absence yields a null scan count, never zero.
+    /// </summary>
+    internal const string ReadIndexUsageStatisticsSql = """
+        SELECT
+            statistics.schemaname::text
+                AS schema_name,
+            statistics.relname::text
+                AS table_name,
+            statistics.indexrelname::text
+                AS index_name,
+            statistics.idx_scan::bigint
+                AS scan_count
+        FROM pg_catalog.pg_stat_all_indexes AS statistics
+        WHERE statistics.schemaname <> 'pg_catalog'
+          AND statistics.schemaname <> 'information_schema'
+          AND statistics.schemaname NOT LIKE 'pg_toast%'
+          AND statistics.schemaname NOT LIKE 'pg_temp_%'
+          AND (
+              pg_catalog.cardinality($1::text[]) = 0
+              OR statistics.schemaname::text = ANY($1::text[])
+          )
+          AND NOT (
+              statistics.schemaname::text = ANY($2::text[])
+          )
+        ORDER BY
+            statistics.schemaname,
+            statistics.relname,
+            statistics.indexrelname
+        """;
+
+    /// <summary>
     /// The process-wide canonical inventory.
     /// </summary>
     internal static PostgreSqlSqlInventory Default { get; } = new();
@@ -280,7 +523,8 @@ internal sealed class PostgreSqlSqlInventory
     private readonly Dictionary<PostgreSqlSqlStatementId, PostgreSqlSqlStatementDefinition> _byId;
 
     /// <summary>
-    /// Every definition in canonical order: B001, B002, B003, C001, C002, C003, C004, D001.
+    /// Every definition in canonical order: B001, B002, B003, C001, C002, C003, C004, D001, E001,
+    /// E002.
     /// </summary>
     internal ReadOnlyCollection<PostgreSqlSqlStatementDefinition> Statements { get; }
 
@@ -354,6 +598,26 @@ internal sealed class PostgreSqlSqlInventory
                     new PostgreSqlSqlParameterDefinition(2, PostgreSqlSqlParameterType.TextArray, "excluded schema names"),
                 ],
                 "Reads relation metadata for eligible tables only, never a business row."),
+
+            new PostgreSqlSqlStatementDefinition(
+                PostgreSqlSqlStatementId.ReadIndexMetadata,
+                PostgreSqlSqlCommandKind.SelectIndexMetadata,
+                ReadIndexMetadataSql,
+                [
+                    new PostgreSqlSqlParameterDefinition(1, PostgreSqlSqlParameterType.TextArray, "included schema names"),
+                    new PostgreSqlSqlParameterDefinition(2, PostgreSqlSqlParameterType.TextArray, "excluded schema names"),
+                ],
+                "Reads index metadata for eligible indexes only, never a business row."),
+
+            new PostgreSqlSqlStatementDefinition(
+                PostgreSqlSqlStatementId.ReadIndexUsageStatistics,
+                PostgreSqlSqlCommandKind.SelectStatistics,
+                ReadIndexUsageStatisticsSql,
+                [
+                    new PostgreSqlSqlParameterDefinition(1, PostgreSqlSqlParameterType.TextArray, "included schema names"),
+                    new PostgreSqlSqlParameterDefinition(2, PostgreSqlSqlParameterType.TextArray, "excluded schema names"),
+                ],
+                "Reads optional per-index scan counters; absence means unknown, never zero."),
         ];
 
         _byId = new Dictionary<PostgreSqlSqlStatementId, PostgreSqlSqlStatementDefinition>(definitions.Length);
