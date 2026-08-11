@@ -3,7 +3,7 @@
 **Definition date:** 2026-07-30  
 **Last updated:** 2026-08-10  
 **Status:** Defined  
-**Verdict:** GC-DHI-04E DEFINITION CORRECTED — AWAITING HUMAN IMPLEMENTATION AUTHORIZATION
+**Verdict:** GC-DHI-04F DEFINITION CORRECTED — AWAITING HUMAN IMPLEMENTATION AUTHORIZATION
 
 ## 1. Objective
 
@@ -241,7 +241,7 @@ different operator-class option values and stored orders cannot collapse.
 ### GC-DHI-04F — Snapshot Provider Composition and PostgreSQL Verification
 
 **Definition:** `docs/gates/GC-DHI-04F_DEFINITION.md`  
-**Authorization:** definition integrated; implementation awaits separate human authorization
+**Authorization:** definition D1 corrected; implementation awaits separate human authorization
 
 Scope:
 
@@ -579,14 +579,14 @@ PostgreSQL 15.18/18.4 matrix and final PG-06 boundary are resolved by
 | GC-DHI-04C — Server Metadata and Capability Probe | Approved and closed |
 | GC-DHI-04D — Table Snapshot Query and Mapping | Approved and closed |
 | GC-DHI-04E — Index Snapshot Query and Mapping | Approved and closed |
-| GC-DHI-04F — Snapshot Provider Composition and PostgreSQL Verification | Defined; awaiting human implementation authorization |
+| GC-DHI-04F — Snapshot Provider Composition and PostgreSQL Verification | Definition corrected; awaiting human implementation authorization |
 
 GC-DHI-04E and PG-05 are completed. GC-DHI-04F implementation remains
 unauthorized, unimplemented and not started. PG-06 full completion remains
 assigned to GC-DHI-04F and is not yet completed.
 
 ```text
-GC-DHI-04F DEFINED — AWAITING HUMAN IMPLEMENTATION AUTHORIZATION
-Await human review of the integrated GC-DHI-04F definition.
+GC-DHI-04F DEFINITION CORRECTED — AWAITING HUMAN IMPLEMENTATION AUTHORIZATION
+Await human review of the corrected GC-DHI-04F definition.
 No GC-DHI-04F implementation is authorized.
 ```

@@ -2,6 +2,7 @@
 
 **Last updated:** 2026-08-10  
 **GC-DHI-04F definition date:** 2026-08-10  
+**GC-DHI-04F D1 correction date:** 2026-08-10  
 **GC-DHI-04E closure date:** 2026-08-10  
 **GC-DHI-04E integration date:** 2026-08-10  
 **GC-DHI-04E definition date:** 2026-08-10  
@@ -12,8 +13,8 @@
 **GC-DHI-04C closure date:** 2026-08-01  
 **GC-DHI-04B closure date:** 2026-08-01  
 **Current phase:** PostgreSQL Metadata Adapter  
-**Current gate:** GC-DHI-04F defined — awaiting human implementation authorization  
-**Authorized next action:** Await human review of the integrated GC-DHI-04F definition  
+**Current gate:** GC-DHI-04F definition corrected — awaiting human implementation authorization  
+**Authorized next action:** Await human review of the corrected GC-DHI-04F definition  
 **PG-01:** completed  
 **PG-02:** completed  
 **PG-03:** completed  
@@ -25,7 +26,7 @@
 **GC-DHI-04C:** approved and closed  
 **GC-DHI-04D:** approved and closed  
 **GC-DHI-04E:** approved and closed  
-**GC-DHI-04F:** defined; implementation unauthorized, unimplemented and not started  
+**GC-DHI-04F:** definition corrected; implementation unauthorized, unimplemented and not started  
 **GC-DHI-03B closure date:** 2026-07-30  
 **GC-DHI-04A closure date:** 2026-07-31  
 **Target release:** v0.1.0-rc.1
@@ -104,8 +105,10 @@ The human project owner granted final closure approval for GC-DHI-04E on
 2026-08-10 after reviewing the definition, D1 correction, implementation,
 Codex R1, Claude C1, Codex R2, PR, CI, merge, canonical artifact, package audit,
 isolated installation and governance integration. PG-05 is completed.
-GC-DHI-04F is now fully defined by
-`docs/gates/GC-DHI-04F_DEFINITION.md`. Its future implementation composes one
+GC-DHI-04F is defined and D1-corrected by
+`docs/gates/GC-DHI-04F_DEFINITION.md`. D1 corrected the stale umbrella verdict
+and froze whole-millisecond validation and integer lock-timeout derivation for
+the custom public statement timeout. Its future implementation composes one
 public provider type over one connection, one session and one rollback-only
 read-only transaction, preserves the ten-statement inventory and adds permanent
 PostgreSQL 15.18/18.4 verification. Its implementation remains unauthorized,
@@ -286,7 +289,7 @@ Codex preserves capacity by avoiding duplicate feature implementation and focusi
 
 ## 7. Work authorized next
 
-Await human review of the integrated GC-DHI-04F definition.
+Await human review of the corrected GC-DHI-04F definition.
 No GC-DHI-04F implementation is authorized.
 
 ---
@@ -443,7 +446,7 @@ GC-DHI-02 will be approved when:
 | Phase | PostgreSQL Metadata Adapter |
 | Sequence | `GC-DHI-04A → GC-DHI-04B → GC-DHI-04C → GC-DHI-04D → GC-DHI-04E → GC-DHI-04F` |
 | Closed | `GC-DHI-04A — Connection Boundary and Secret Hygiene`; `GC-DHI-04B — Read-Only Session and SQL Safety Kernel`; `GC-DHI-04C — Server Metadata and Capability Probe`; `GC-DHI-04D — Table Snapshot Query and Mapping`; `GC-DHI-04E — Index Snapshot Query and Mapping` |
-| Defined, implementation unauthorized | `GC-DHI-04F — Snapshot Provider Composition and PostgreSQL Verification` |
+| Definition corrected, implementation unauthorized | `GC-DHI-04F — Snapshot Provider Composition and PostgreSQL Verification` |
 | Architecture | `PostgreSql → Core`; Core has no infrastructure dependency |
 | Safety | Static inventoried SQL, parameterized external values, explicit read-only transaction |
 | GC-DHI-04B transaction | `RepeatableRead`, read-only, non-deferrable, rollback only |
@@ -452,13 +455,14 @@ GC-DHI-02 will be approved when:
 | Current inventory | Exactly B001–B003, C001–C004, D001, E001 and E002; ten statements total |
 | GC-DHI-04E inventory | Ten statements, eight kinds, two parameter types, ten definitions and ten frozen contracts |
 | Supported versions | PostgreSQL 15.18 and 18.4 pinned; permanent verification required in GC-DHI-04F implementation |
-| Product implementation | GC-DHI-04E approved and closed; GC-DHI-04F defined but implementation unauthorized and not started |
+| Product implementation | GC-DHI-04E approved and closed; GC-DHI-04F definition corrected but implementation unauthorized and not started |
 
 Each subgate requires implementation by Claude Code, Codex review, correction
 when needed, human approval, PR integration, green CI, governance registration
 and closure before the next subgate may begin. GC-DHI-04A and GC-DHI-04B are
 approved and closed. GC-DHI-04C, GC-DHI-04D and GC-DHI-04E are also approved
-and closed. GC-DHI-04F is defined; implementation remains unauthorized and not started.
+and closed. GC-DHI-04F's definition is corrected; implementation remains
+unauthorized and not started.
 
 ## 15. GC-DHI-04A integration record
 
@@ -671,13 +675,17 @@ and closed. GC-DHI-04F is defined; implementation remains unauthorized and not s
 |---|---|
 | Definition date | `2026-08-10` |
 | Definition | `docs/gates/GC-DHI-04F_DEFINITION.md` |
-| Gate state | `GC-DHI-04F DEFINED — AWAITING HUMAN IMPLEMENTATION AUTHORIZATION` |
+| D1 correction date | `2026-08-10` |
+| Gate state | `GC-DHI-04F DEFINITION CORRECTED — AWAITING HUMAN IMPLEMENTATION AUTHORIZATION` |
 | Provider API | Exactly one new public type: `PostgreSqlDatabaseSnapshotProvider` |
 | Capture topology | One connection, one verified session, one `RepeatableRead` read-only non-deferrable rollback-only transaction |
 | Composition | C001–C004 → D001 → E001 and conditional E002; one immutable schema filter |
 | Unsupported server | Complete metadata/capability snapshot with empty object collections; no C002–E002 |
 | Object invariant | Every index closes to one table identity; schemas derived in ordinal order |
 | Concurrency | Concurrent captures supported with independent scopes and coordinated asynchronous disposal |
+| Custom statement timeout | Finite, positive, whole milliseconds, 100 ms through 5 min; validated before resource creation |
+| Derived lock timeout | `min(5000, statementTimeoutMilliseconds / 2)` using non-negative integer division; exact whole milliseconds |
+| Idle timeout | Exactly 60 seconds; not derived |
 | Productive SQL | Unchanged B001, B002, B003, C001, C002, C003, C004, D001, E001 and E002 |
 | Validator | Unchanged 800 combinations; exactly 10 accepted and 790 rejected |
 | PostgreSQL 15 | `postgres:15.18@sha256:6eb0add3b77c081df18aa518ce43df58fdcc40f2e6d868a6fd08038dc7acd425` |
@@ -688,5 +696,5 @@ and closed. GC-DHI-04F is defined; implementation remains unauthorized and not s
 
 ## 23. Recommended next action
 
-Await human review of the integrated GC-DHI-04F definition.
+Await human review of the corrected GC-DHI-04F definition.
 No GC-DHI-04F implementation is authorized.

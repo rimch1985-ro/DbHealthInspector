@@ -1,7 +1,8 @@
 # GC-DHI-04F — Snapshot Provider Composition and PostgreSQL Verification
 
 **Definition date:** 2026-08-10  
-**Gate state:** GC-DHI-04F DEFINED — AWAITING HUMAN IMPLEMENTATION AUTHORIZATION  
+**D1 correction date:** 2026-08-10  
+**Gate state:** GC-DHI-04F DEFINITION CORRECTED — AWAITING HUMAN IMPLEMENTATION AUTHORIZATION  
 **Implementation:** UNAUTHORIZED  
 **Backlog:** final composition of PG-01 through PG-05; final verification of PG-06  
 **Predecessor:** GC-DHI-04E approved and closed
@@ -178,14 +179,64 @@ surface. The assembly's expected exported type count therefore grows from one
 (`AssemblyMarker`) to exactly two.
 
 The one-argument factory uses the existing default session options and
-`PostgreSqlSchemaFilter.IncludeEverything`. The four-argument factory validates
-and defensively copies both exact-name collections once, creates one immutable
-filter, and maps the public statement timeout into existing session options.
-The accepted statement range remains 100 ms through 5 minutes. Lock timeout is
-`min(5 seconds, statementTimeout / 2)` (therefore at least 50 ms and strictly
-less than statement timeout), and idle-in-transaction timeout remains 60
-seconds. The default remains 30 s / 5 s / 60 s. This exposes only the already
-approved future CLI inputs and does not implement that CLI.
+`PostgreSqlSchemaFilter.IncludeEverything`: 30 seconds statement timeout, 5
+seconds lock timeout and 60 seconds idle-in-transaction timeout.
+
+The four-argument factory validates and defensively copies both exact-name
+collections once, creates one immutable filter, and maps the public statement
+timeout into existing session options. Before creating
+`PostgreSqlConnectionFactory` or any other resource, `statementTimeout` must:
+
+- not equal `Timeout.InfiniteTimeSpan`;
+- be positive;
+- be an exact whole number of milliseconds;
+- be at least 100 milliseconds; and
+- be at most 5 minutes.
+
+The caller's value is rejected if it has fractional milliseconds; it is never
+rounded, truncated or clamped. After validation, the exact integer conversion
+is named `statementTimeoutMilliseconds`. The lock timeout is then derived
+exactly as:
+
+```text
+lockTimeoutMilliseconds =
+    min(
+        5000,
+        statementTimeoutMilliseconds / 2
+    )
+
+lockTimeout = TimeSpan.FromMilliseconds(lockTimeoutMilliseconds)
+```
+
+The division is non-negative integer division. The idle-in-transaction timeout
+remains exactly 60 seconds and is not derived from the statement timeout.
+
+Frozen examples:
+
+| Statement timeout | Derived lock timeout |
+|---:|---:|
+| 100 ms | 50 ms |
+| 101 ms | 50 ms |
+| 102 ms | 51 ms |
+| 999 ms | 499 ms |
+| 1000 ms | 500 ms |
+| 9999 ms | 4999 ms |
+| 10000 ms | 5000 ms |
+| 30000 ms | 5000 ms |
+| 300000 ms | 5000 ms |
+
+For every accepted integer `S = statementTimeoutMilliseconds`,
+`100 <= S <= 300000`. Therefore integer division gives `S / 2 >= 50`.
+Taking `min(5000, S / 2)` preserves a lower bound of 50 and establishes an
+upper bound of 5000. Because `S` is positive, integer `S / 2 < S`; taking the
+minimum cannot increase it, so the derived lock timeout is strictly less than
+the statement timeout. Both arguments to `min` are integers, so the result and
+`TimeSpan.FromMilliseconds` value are always exact whole milliseconds. No
+separate lower clamp is necessary.
+
+This correction adds no public lock/idle argument, options type, factory type,
+CLI parsing, environment variable or configuration file. It exposes only the
+already approved future CLI inputs and does not implement that CLI.
 
 ## 8. Provider construction
 
@@ -757,7 +808,7 @@ Closure requires evidence of all of the following:
 ## 39. Authorization boundary and verdict
 
 ```text
-GC-DHI-04F DEFINED — AWAITING HUMAN IMPLEMENTATION AUTHORIZATION
+GC-DHI-04F DEFINITION CORRECTED — AWAITING HUMAN IMPLEMENTATION AUTHORIZATION
 PG-06 full completion — NOT YET COMPLETED
 GC-DHI-04F implementation — UNAUTHORIZED
 ```
@@ -767,6 +818,6 @@ No provider implementation, test or CI matrix is authorized by this document.
 ## 40. Next action
 
 ```text
-Await human review of the integrated GC-DHI-04F definition.
+Await human review of the corrected GC-DHI-04F definition.
 No GC-DHI-04F implementation is authorized.
 ```
