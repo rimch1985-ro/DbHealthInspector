@@ -1,13 +1,15 @@
 # GC-DHI-04E — Index Snapshot Query and Mapping Integration Report
 
-**Status:** READY FOR FINAL HUMAN CLOSURE  
+**Status:** APPROVED AND CLOSED  
 **Integration date:** 2026-08-10  
+**Closure date:** 2026-08-10  
+**Final human closure:** APPROVED  
 **Backlog item:** PG-05 — Implement index snapshot query  
 **Repository:** `rimch1985-ro/DbHealthInspector`
 
-This report records the authorized implementation and integration of
-GC-DHI-04E. It does not close the gate and does not authorize or start
-GC-DHI-04F.
+This report records the authorized implementation, integration and final human
+closure of GC-DHI-04E. The closure completes PG-05 and does not authorize,
+implement or start GC-DHI-04F.
 
 ## 1. Definition and authorization history
 
@@ -393,48 +395,56 @@ publication performed: none
 
 No tag, release or NuGet publication was created.
 
-## 25. Governance and final repository requirements
+## 25. Governance integration
 
-This report and `docs/agent-governance/PROJECT_STATE.md` are the only authorized
-governance changes after the verified merge. They record integration, not final
-closure. The governance commit is required to use:
-
-```text
-docs(governance): record GC-DHI-04E integration
-```
-
-Its CI must pass on Ubuntu and Windows. Any artifact from that documentation-only
-commit does not replace the canonical merge artifact.
+Governance integration commit
+`096a0ecb7ccf6f03861fa6882707e7f5704b24c0` modified only this report and
+`docs/agent-governance/PROJECT_STATE.md`. Governance CI run `31455181013`
+passed on Ubuntu job `93667365741` with 1996 tests and Windows job
+`93667365758` with 1844 tests. Both builds reported zero warnings and zero
+errors. Its documentation-only artifact does not replace the canonical merge
+artifact.
 
 ## 26. Backlog status
 
 ```text
-PG-05: implemented and integrated
-GC-DHI-04E: implemented and integrated; ready for final human closure
-GC-DHI-04E: NOT YET CLOSED
+PG-05: COMPLETED
+GC-DHI-04E: APPROVED AND CLOSED
 PG-06 full completion: remains assigned to GC-DHI-04F
-GC-DHI-04F: unauthorized, unimplemented and not started
+GC-DHI-04F implementation: unauthorized, unimplemented and not started
 ```
 
 ## 27. Gate verdict and next action
 
 ```text
-READY FOR FINAL HUMAN CLOSURE
-PG-05 IMPLEMENTED AND INTEGRATED
-GC-DHI-04E NOT YET FINALLY CLOSED
-GC-DHI-04F UNAUTHORIZED
+GC-DHI-04E CLOSED
+PG-05 COMPLETED
+GC-DHI-04F NOT AUTHORIZED FOR IMPLEMENTATION
 ```
 
-Await final human review and closure of GC-DHI-04E.  
-GC-DHI-04F remains unauthorized.
+Define the technical scope and authorization criteria for GC-DHI-04F.  
+No GC-DHI-04F implementation is authorized by this closure.
 
-## 28. Mandatory declaration
+## 28. Final human closure
 
-GC-DHI-04E was integrated through a reviewed pull request and verified by green CI.  
-PG-05 was implemented and integrated within the authorized GC-DHI-04E scope.  
-The productive SQL inventory contains exactly B001, B002, B003, C001, C002, C003, C004, D001, E001 and E002.  
-The GC-DHI-04E validator contract remains exactly 10 accepted and 790 rejected combinations out of 800.  
-GC-DHI-04E is not yet finally closed.  
-GC-DHI-04F was not started.  
-No snapshot provider, diagnostic rule, CLI behavior or JSON reporting was added.  
-No tag, release or NuGet publication was performed.
+- Definition commit: `f23ffabbfc6d2a0812b56de452311a3916e433fa`.
+- D1 structural-identity correction:
+  `fa7f2eebecebb6230669c715b3f9b4e4ae9552ec`.
+- Human definition approval preceded the three authorized local phases:
+  `IMPLEMENT-1`, `IMPLEMENT-2` and `IMPLEMENT-3`.
+- Codex R1 raised R1-01 through R1-05; Claude C1 resolved them and Codex R2
+  confirmed every resolution without a new functional finding.
+- Implementation commit: `e50442baea7130a094584e5c5024fb92894f95ab`.
+- Pull request `#7` passed PR CI `31454410407` and was merged by
+  `f78720891766f831e1fd7d46a68c2aef9dbb83f2`.
+- Master CI `31454525066`, canonical artifact `9087542583`, package audit and
+  isolated installation passed.
+- Governance integration commit
+  `096a0ecb7ccf6f03861fa6882707e7f5704b24c0` passed governance CI
+  `31455181013`.
+- Closure date: `2026-08-10`.
+- Final human closure: `APPROVED`.
+- PG-05: `COMPLETED`.
+
+GC-DHI-04E is approved and closed. GC-DHI-04F was not implemented or started
+by this closure.
