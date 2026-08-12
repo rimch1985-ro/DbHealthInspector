@@ -39,12 +39,13 @@ jobs:
       - name: Unit tests
         run: dotnet test tests/DbHealthInspector.UnitTests --configuration Release --no-build
 
-      # Split so the server suite is never run twice and never reported as skipped.
+      # Split so a server suite is never run twice and never reported as skipped. Both
+      # server categories are excluded here: PostgreSql15 has its own job.
       - name: Integration tests (no server)
         run: >-
           dotnet test tests/DbHealthInspector.IntegrationTests
           --configuration Release --no-build
-          --filter "Category!=PostgreSqlServer"
+          --filter "Category!=PostgreSqlServer&Category!=PostgreSql15"
 
       # Ubuntu is the only job with a Docker daemon, so it is the only job that runs the
       # PostgreSQL 18 Testcontainers suite.
@@ -63,6 +64,34 @@ jobs:
           name: dbhealth-bootstrap-package
           path: artifacts/packages/*.nupkg
           if-no-files-found: error
+
+  # Compatibility verification on the oldest supported major. Test-only: it never runs the unit or
+  # non-server suites a second time, never packs, never uploads and never uses the canonical
+  # artifact name. PostgreSQL 18 remains the exhaustive suite and the sole package producer.
+  postgresql15:
+    name: PostgreSQL 15
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: global.json
+
+      - name: Restore
+        run: dotnet restore
+
+      - name: Build
+        run: dotnet build --configuration Release --no-restore
+
+      - name: Integration tests (PostgreSQL 15 server)
+        run: >-
+          dotnet test tests/DbHealthInspector.IntegrationTests
+          --configuration Release --no-build
+          --filter "Category=PostgreSql15"
 
   windows:
     name: Windows
@@ -86,13 +115,13 @@ jobs:
       - name: Unit tests
         run: dotnet test tests/DbHealthInspector.UnitTests --configuration Release --no-build
 
-      # Windows has no Docker daemon for Linux containers, so it excludes the server trait
-      # rather than reporting those tests as skipped. Both jobs must report zero skipped tests.
+      # Windows has no Docker daemon for Linux containers, so it excludes both server traits
+      # rather than reporting those tests as skipped. Every job must report zero skipped tests.
       - name: Integration tests (no server)
         run: >-
           dotnet test tests/DbHealthInspector.IntegrationTests
           --configuration Release --no-build
-          --filter "Category!=PostgreSqlServer"
+          --filter "Category!=PostgreSqlServer&Category!=PostgreSql15"
 
       - name: CLI smoke test
         run: dotnet run --project src/DbHealthInspector.Cli --configuration Release --no-build -- --help

@@ -104,4 +104,23 @@ public sealed class IndexSnapshotStatisticsUnavailableTests
             Assert.True(index.SizeBytes >= 0);
         });
     }
+
+    // --- Shared cross-version degradation contract (GC-DHI-04F-C2, R1-06) -----------------------
+
+    [Fact]
+    public async Task TheProvider_SatisfiesTheSharedUsageStatisticsUnavailableContract()
+    {
+        using CancellationTokenSource deadline = TestDeadline();
+
+        await using var provider = DbHealthInspector.PostgreSql.Snapshots.PostgreSqlDatabaseSnapshotProvider
+            .Create(_fixture.InspectionConnectionString);
+
+        DatabaseSnapshot snapshot = await provider.CaptureAsync(deadline.Token);
+
+        // The identical helper the PostgreSQL 15 suite calls for its own degraded role, so the
+        // unavailable-statistics contract is frozen once and asserted on both majors. This
+        // container is deliberately minimal and holds no indexes, which is a fixture difference
+        // rather than a version one; every other part of the contract is asserted identically.
+        CrossVersionSnapshotAssertions.AssertUsageStatisticsUnavailable(snapshot, expectIndexes: false);
+    }
 }
