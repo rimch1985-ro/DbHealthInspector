@@ -15,6 +15,11 @@ env:
   DOTNET_NOLOGO: true
   DOTNET_CLI_TELEMETRY_OPTOUT: true
   TESTINGPLATFORM_TELEMETRY_OPTOUT: true
+  # On pull_request the checkout is refs/pull/N/merge, so github.sha is the synthetic merge
+  # commit and SourceLink would stamp that unreachable SHA into every artifact. Tests must keep
+  # running against the merge result, so the checkout is left alone and provenance is taken from
+  # the pull request head instead. On push there is no merge commit and github.sha is canonical.
+  CI_SOURCE_REVISION: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
 
 jobs:
   ubuntu:
@@ -34,7 +39,10 @@ jobs:
         run: dotnet restore
 
       - name: Build
-        run: dotnet build --configuration Release --no-restore
+        run: >-
+          dotnet build --configuration Release --no-restore
+          -p:SourceRevisionId=${{ env.CI_SOURCE_REVISION }}
+          -p:RepositoryCommit=${{ env.CI_SOURCE_REVISION }}
 
       - name: Unit tests
         run: dotnet test tests/DbHealthInspector.UnitTests --configuration Release --no-build
@@ -56,7 +64,60 @@ jobs:
           --filter "Category=PostgreSqlServer"
 
       - name: Pack
-        run: dotnet pack src/DbHealthInspector.Cli --configuration Release --no-build
+        run: >-
+          dotnet pack src/DbHealthInspector.Cli --configuration Release --no-build
+          -p:SourceRevisionId=${{ env.CI_SOURCE_REVISION }}
+          -p:RepositoryCommit=${{ env.CI_SOURCE_REVISION }}
+
+      # Provenance gate: the artifact is only uploaded if the assembly informational version and
+      # the .nuspec repository commit both name the canonical source revision. The .nuspec is
+      # parsed as XML so the check proves the repository element's commit attribute, rather than
+      # matching the SHA anywhere in the archive.
+      - name: Verify package provenance
+        run: |
+          set -euo pipefail
+
+          expected_version="0.1.0-alpha.0+${CI_SOURCE_REVISION}"
+          actual_version="$(dotnet run --project src/DbHealthInspector.Cli --configuration Release --no-build -- --version | tr -d '\r' | tail -n 1)"
+          echo "CLI version expected: ${expected_version}"
+          echo "CLI version actual:   ${actual_version}"
+          if [ "${actual_version}" != "${expected_version}" ]; then
+            echo "::error::CLI informational version does not name the canonical source revision."
+            exit 1
+          fi
+
+          python3 - <<'PY'
+          import glob
+          import os
+          import sys
+          import xml.etree.ElementTree as ET
+          import zipfile
+
+          expected = os.environ["CI_SOURCE_REVISION"]
+
+          packages = sorted(glob.glob("artifacts/packages/*.nupkg"))
+          if len(packages) != 1:
+              sys.exit(f"expected exactly one .nupkg, found {len(packages)}: {packages}")
+
+          with zipfile.ZipFile(packages[0]) as archive:
+              manifests = [name for name in archive.namelist() if name.endswith(".nuspec")]
+              if len(manifests) != 1:
+                  sys.exit(f"expected exactly one .nuspec, found {len(manifests)}: {manifests}")
+              root = ET.fromstring(archive.read(manifests[0]).decode("utf-8-sig"))
+
+          commits = [
+              element.get("commit")
+              for element in root.iter()
+              if element.tag.rsplit("}", 1)[-1] == "repository"
+          ]
+          if len(commits) != 1:
+              sys.exit(f"expected exactly one <repository> element, found {len(commits)}")
+
+          print(f"nuspec repository commit expected: {expected}")
+          print(f"nuspec repository commit actual:   {commits[0]}")
+          if commits[0] != expected:
+              sys.exit("nuspec repository commit does not name the canonical source revision.")
+          PY
 
       - name: Upload package
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -85,7 +146,10 @@ jobs:
         run: dotnet restore
 
       - name: Build
-        run: dotnet build --configuration Release --no-restore
+        run: >-
+          dotnet build --configuration Release --no-restore
+          -p:SourceRevisionId=${{ env.CI_SOURCE_REVISION }}
+          -p:RepositoryCommit=${{ env.CI_SOURCE_REVISION }}
 
       - name: Integration tests (PostgreSQL 15 server)
         run: >-
@@ -110,7 +174,10 @@ jobs:
         run: dotnet restore
 
       - name: Build
-        run: dotnet build --configuration Release --no-restore
+        run: >-
+          dotnet build --configuration Release --no-restore
+          -p:SourceRevisionId=${{ env.CI_SOURCE_REVISION }}
+          -p:RepositoryCommit=${{ env.CI_SOURCE_REVISION }}
 
       - name: Unit tests
         run: dotnet test tests/DbHealthInspector.UnitTests --configuration Release --no-build
