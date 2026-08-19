@@ -27,16 +27,30 @@ internal sealed class FakeInspectionSessionScope : IPostgreSqlInspectionSessionS
 {
     private readonly Dictionary<SessionScopeStep, Exception> _failures = [];
     private readonly Dictionary<SessionScopeStep, Action> _beforeStep = [];
-    private readonly ScriptedStatementGateway _gateway;
+    private readonly IPostgreSqlStatementGateway _gateway;
 
     internal FakeInspectionSessionScope(ScriptedStatementGateway? gateway = null)
     {
         _gateway = gateway ?? ScriptedStatementGateway.HealthySession();
     }
 
+    /// <summary>
+    /// Accepts any gateway double, so a suite that needs to script statements beyond session
+    /// initialization — GC-DHI-04F's provider tests script the whole C/D/E surface — can reuse this
+    /// scope rather than duplicating it.
+    /// </summary>
+    internal FakeInspectionSessionScope(IPostgreSqlStatementGateway gateway)
+    {
+        _gateway = gateway;
+    }
+
     internal List<SessionScopeStep> Steps { get; } = [];
 
-    internal ScriptedStatementGateway Gateway => _gateway;
+    /// <summary>
+    /// The scripted session gateway. Only valid when this scope was built with one; a scope built
+    /// over another gateway double exposes that double directly to its own suite instead.
+    /// </summary>
+    internal ScriptedStatementGateway Gateway => (ScriptedStatementGateway)_gateway;
 
     internal FakeInspectionSessionScope FailingAt(SessionScopeStep step, Exception failure)
     {
