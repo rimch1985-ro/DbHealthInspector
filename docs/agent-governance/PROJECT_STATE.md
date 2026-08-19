@@ -1,6 +1,8 @@
 # PROJECT_STATE — DbHealth Inspector
 
-**Last updated:** 2026-08-10  
+**Last updated:** 2026-08-19  
+**GC-DHI-04F implementation integration date:** 2026-08-19  
+**GC-DHI-04F closure date:** 2026-08-19  
 **GC-DHI-04F definition date:** 2026-08-10  
 **GC-DHI-04F D1 correction date:** 2026-08-10  
 **GC-DHI-04E closure date:** 2026-08-10  
@@ -12,21 +14,21 @@
 **GC-DHI-04C integration authorization date:** 2026-08-01  
 **GC-DHI-04C closure date:** 2026-08-01  
 **GC-DHI-04B closure date:** 2026-08-01  
-**Current phase:** PostgreSQL Metadata Adapter  
-**Current gate:** GC-DHI-04F definition corrected — awaiting human implementation authorization  
-**Authorized next action:** Await human review of the corrected GC-DHI-04F definition  
+**Current phase:** PostgreSQL Metadata Adapter completed; transition to Phase 4 — Diagnostic Rules  
+**Current gate:** GC-DHI-04F approved and closed  
+**Authorized next action:** Define the next Phase 4 Diagnostic Rules gate; no Phase 4 implementation is authorized  
 **PG-01:** completed  
 **PG-02:** completed  
 **PG-03:** completed  
 **PG-04:** completed  
 **PG-05:** completed  
 **PG-06 foundation:** completed in GC-DHI-04B  
-**PG-06 full completion:** remains assigned to GC-DHI-04F  
+**PG-06 full completion:** completed in GC-DHI-04F  
 **GC-DHI-04B:** approved and closed  
 **GC-DHI-04C:** approved and closed  
 **GC-DHI-04D:** approved and closed  
 **GC-DHI-04E:** approved and closed  
-**GC-DHI-04F:** definition corrected; implementation unauthorized, unimplemented and not started  
+**GC-DHI-04F:** approved and closed  
 **GC-DHI-03B closure date:** 2026-07-30  
 **GC-DHI-04A closure date:** 2026-07-31  
 **Target release:** v0.1.0-rc.1
@@ -38,83 +40,73 @@
 DbHealth Inspector has a locally and remotely validated .NET 10 repository at
 `https://github.com/rimch1985-ro/DbHealthInspector`.
 
-GC-DHI-04A through GC-DHI-04E are approved and closed. GC-DHI-04E — Index
-Snapshot Query and Mapping was implemented through the authorized Claude
-Code/Codex review sequence and integrated through pull request `#7` at
-`https://github.com/rimch1985-ro/DbHealthInspector/pull/7`. Implementation commit
-`e50442baea7130a094584e5c5024fb92894f95ab` was merged by merge commit
-`f78720891766f831e1fd7d46a68c2aef9dbb83f2`, whose first parent is baseline
-`fa7f2eebecebb6230669c715b3f9b4e4ae9552ec` and second parent is the
-implementation commit.
+GC-DHI-04A through GC-DHI-04F are approved and closed. GC-DHI-04F — Snapshot
+Provider Composition and PostgreSQL Verification — was implemented through the
+authorized Claude Code/Codex review sequence and integrated through pull request
+`#8`. Implementation commit
+`657e1596c1bbc34d592136933abd823df4e89f58` was followed by two separately
+reviewed integration corrections: CI provenance commit
+`0624652fd0d117e03ac72d1bf53e30c21cda852a` and test-only SSH.NET security
+commit `57b4d3f76a6fb1cf6d84b05c051895f3f4468b77`. PR #8 was merged by explicit
+merge commit `1206cedd2eebc4d3b0cbf05ef0cc8c359bb8b177`.
 
-PG-05 is implemented and integrated. The productive inventory is exactly
-B001–B003, C001–C004, D001, E001 and E002: ten static statements, eight command
-kinds, two parameter types, ten inventory definitions and ten frozen contracts.
-The validator accepts exactly ten and rejects 790 of 800 ID/kind/SQL
-combinations. E001 has 31 typed columns and E002 has four.
+The PostgreSQL adapter now exposes the approved
+`PostgreSqlDatabaseSnapshotProvider`, composes one complete engine-neutral
+`DatabaseSnapshot` through one verified read-only Repeatable Read transaction,
+reuses one validated schema filter, preserves atomicity and deterministic
+ordering, and retains the exact ten-statement productive inventory. No new
+productive SQL, Core semantic, diagnostic rule, CLI inspection command or JSON
+reporting behavior was added by GC-DHI-04F.
 
-Pull-request CI run `31454410407` passed on Ubuntu job `93665147247` and Windows
-job `93665147207`. Master CI run `31454525066` passed on Ubuntu job
-`93665473589` and Windows job `93665473508`. Ubuntu completed 1996 tests and
-Windows completed 1844 tests; both reported zero failures, zero skipped tests,
-zero build warnings and zero build errors. Ubuntu packed and uploaded the tool;
-Windows passed the bootstrap-only CLI smoke test.
+The productive inventory remains exactly B001–B003, C001–C004, D001, E001 and
+E002: ten static statements, eight command kinds, two parameter types, ten
+inventory definitions and ten frozen contracts. The fail-closed validator
+accepts exactly ten and rejects 790 of 800 ID/kind/SQL combinations. Product
+code accepts no raw or caller-provided SQL; schema filters remain parameterized
+as `text[]` values.
 
-The PostgreSQL suite used `postgres:18.4` at immutable digest
-`sha256:3a82e1f56c8f0f5616a11103ac3d47e632c3938698946a7ad26da0df1334744a`.
-The empirical matrix executed all 19 required forms and observed the temporary
-subpartition as `p/t/true`. Same-session `postgres_fdw` evidence, required-size-
-function permission loss, cancellation, cleanup, exact schema filters,
-ten-column mapping, direct per-OID partition sizing and duplicate rejection all
-passed without adding productive fixture SQL.
+PR CI run `32296079038` (#45) passed Ubuntu, PostgreSQL 15 and Windows. Ubuntu
+reported 1935 UnitTests, 13 non-server integration tests and 174 PostgreSQL 18
+integration tests; PostgreSQL 15 reported 24 tests; Windows reported 1935
+UnitTests, 13 non-server integration tests and a passing bootstrap CLI smoke.
+Every partition had zero failures and zero skipped tests and every build had
+zero warnings and zero errors.
+
+The implementation was merged to `master` by
+`1206cedd2eebc4d3b0cbf05ef0cc8c359bb8b177`. Canonical master CI run
+`32297138214` (#46) passed the same three protected jobs with the same counts and
+zero failures/skips/warnings/errors. On master, `CI_SOURCE_REVISION` resolved to
+the merge SHA; both the CLI informational version and the package `.nuspec`
+repository commit were verified as exactly
+`1206cedd2eebc4d3b0cbf05ef0cc8c359bb8b177` before artifact upload.
 
 The canonical master artifact `dbhealth-bootstrap-package` is artifact ID
-`9087542583`, 964597 bytes, with GitHub digest
-`sha256:89d76672dee68b32ee54ad4c2ef7c5747bd61d199f9b17775d5ffa048a552193`.
-The downloaded ZIP has the matching SHA-256. The package
-`DbHealthInspector.Tool.0.1.0-alpha.0.nupkg` is 969244 bytes with SHA-256
-`D6CCDD2D2AF3EFCD750BAA2BB95F7FB698720F4203C0A2A9C84D8EBE892D7257`.
-It is a MIT `DotnetTool`, exposes only `dbhealth`, references the exact merge
-commit and returned
-`0.1.0-alpha.0+f78720891766f831e1fd7d46a68c2aef9dbb83f2` from an isolated
-installation.
+`9381656515`, 973024 bytes, with GitHub digest
+`sha256:367da3484178f003432898f9a58e7d6a475efa2fc5da094cbcc0e60aeafcf890`.
+The independently downloaded ZIP has the matching SHA-256. Its sole package,
+`DbHealthInspector.Tool.0.1.0-alpha.0.nupkg`, is 977570 bytes with SHA-256
+`36F56758865227B2C8C873E4D9BD1922D46D257A47DAE5CFF287C598A69D2197`.
+The package contains no SSH.NET, Renci.SshNet, Testcontainers or xUnit runtime
+asset and references the exact merge commit.
 
-The stable golden fingerprint remains
-`sha256:34d49fc53bf780ac48ff7c076662687fee038d95701dc3272ee2cb6620cbd444`.
-The package contains no test assemblies, Testcontainers, xUnit, fixture SQL,
-test markers, credentials, connection strings or test results. Reflection found
-zero new exported PostgreSQL types, zero PostgreSQL snapshot-provider
-implementations and zero PostgreSQL inspection-rule implementations. D002 and
-E003 remain absent. No diagnostic rule, CLI inspection behavior or JSON
-reporting was added.
+The human project owner independently installed that exact canonical package
+from a temporary local NuGet source on Windows. Installation succeeded,
+`dbhealth --version` returned
+`0.1.0-alpha.0+1206cedd2eebc4d3b0cbf05ef0cc8c359bb8b177`, and `dbhealth --help`
+remained bootstrap-only with only help/version behavior. The temporary tool and
+source were removed after verification.
 
-The human project owner approved and closed GC-DHI-04D on 2026-08-10 after
-reviewing the complete definition, implementation, correction, PR, CI,
-PostgreSQL, artifact, package, installation and governance record.
+PG-06's five final acceptance criteria are satisfied together: every productive
+SQL resource is inventoried; prohibited classes and 790 wrong tuples fail
+closed; no product path accepts user SQL; schema values use one validated
+parameterized filter; and the permanent safety documentation, PostgreSQL 15/18
+matrix and package/leakage scans are green. PG-06 is therefore completed.
 
-GC-DHI-04E implements required E001 structural index metadata and optional E002
-usage statistics, the expanded frozen C002 capability contract, the existing
-schema filter and a provider-neutral `GetStringArray` seam. It preserves key and
-INCLUDE order, expressions, partial predicates, qualified collations and
-operator classes with ordered `attoptions`, validity flags, physical and
-partitioned index semantics, and nullable usage statistics. All Codex R1
-findings R1-01 through R1-05 were resolved by Claude C1 and confirmed by Codex
-R2 before integration.
-
-The human project owner granted final closure approval for GC-DHI-04E on
-2026-08-10 after reviewing the definition, D1 correction, implementation,
-Codex R1, Claude C1, Codex R2, PR, CI, merge, canonical artifact, package audit,
-isolated installation and governance integration. PG-05 is completed.
-GC-DHI-04F is defined and D1-corrected by
-`docs/gates/GC-DHI-04F_DEFINITION.md`. D1 corrected the stale umbrella verdict
-and froze whole-millisecond validation and integer lock-timeout derivation for
-the custom public statement timeout. Its future implementation composes one
-public provider type over one connection, one session and one rollback-only
-read-only transaction, preserves the ten-statement inventory and adds permanent
-PostgreSQL 15.18/18.4 verification. Its implementation remains unauthorized,
-unimplemented and not started. PG-06 full completion remains assigned to
-GC-DHI-04F and is not yet completed. No tag, release or NuGet publication was
-performed.
+`master` remains protected and requires `Ubuntu`, `Windows` and `PostgreSQL 15`.
+No force push, rebase, squash, tag, release, NuGet publication or branch-
+protection mutation was performed. GC-DHI-04F and the PostgreSQL Metadata
+Adapter phase are closed; the next work is definition of the Phase 4 Diagnostic
+Rules gate under separate human authorization.
 
 ---
 
@@ -221,9 +213,8 @@ Codex preserves capacity by avoiding duplicate feature implementation and focusi
   `E63D2E76658C85F467FD76945A98F594E4A45377A6426A34B84133489FF305EB`.
 - The CI package installed successfully in an isolated tool path and returned
   success for `dbhealth --help` and `dbhealth --version`.
-- `master` protection requires strict `Ubuntu` and `Windows` GitHub Actions
-  checks. Force pushes and branch deletion are disabled; no third-party review
-  is required.
+- `master` protection requires strict GitHub Actions checks. Force pushes and
+  branch deletion are disabled; no third-party review is required.
 - GC-DHI-03A implemented the engine-neutral finding model, snapshot model,
   diagnostic-rule contract and stable fingerprint format `fp1`.
 - Codex reviews R1–R3 completed; all R1/R2 findings were resolved before
@@ -284,13 +275,32 @@ Codex preserves capacity by avoiding duplicate feature implementation and focusi
   independently audited canonical merge artifact and isolated tool install.
 - The human project owner approved and closed GC-DHI-04E on 2026-08-10. PG-05
   is completed.
+- GC-DHI-04F implemented the final PostgreSQL snapshot provider composition,
+  permanent PostgreSQL 15.18/18.4 compatibility matrix, same-session and
+  same-transaction evidence, lifecycle/cancellation coverage and package safety
+  verification without adding productive SQL.
+- PR #8 integrated the implementation through merge commit
+  `1206cedd2eebc4d3b0cbf05ef0cc8c359bb8b177`; canonical master CI
+  `32297138214` passed Ubuntu, PostgreSQL 15 and Windows with zero failures,
+  skips, warnings or errors.
+- The canonical master artifact ID `9381656515` and its sole NuGet package were
+  independently audited; the package SHA-256 is
+  `36F56758865227B2C8C873E4D9BD1922D46D257A47DAE5CFF287C598A69D2197`.
+- The human project owner independently installed the exact canonical package;
+  bootstrap help/version behavior and merge-SHA provenance were verified and
+  the temporary installation was removed.
+- PG-06's final allowlist acceptance criteria are satisfied and PG-06 is
+  completed.
+- The human project owner approved and closed GC-DHI-04F on 2026-08-19. The
+  PostgreSQL Metadata Adapter phase is completed.
 
 ---
 
 ## 7. Work authorized next
 
-Await human review of the corrected GC-DHI-04F definition.
-No GC-DHI-04F implementation is authorized.
+Define the technical scope and authorization criteria for the next Phase 4 —
+Diagnostic Rules — gate. No Phase 4 diagnostic implementation is authorized by
+GC-DHI-04F closure.
 
 ---
 
@@ -298,11 +308,9 @@ No GC-DHI-04F implementation is authorized.
 
 The following are not yet authorized:
 
-- Implement GC-DHI-04F.
-- Skip or combine GC-DHI-04 subgates.
-- Implement PostgreSQL catalog queries before their authorized subgate.
 - Implement production diagnostic rules.
-- Start the next functional gate.
+- Start implementation of the next functional gate before its definition and
+  explicit human authorization.
 - Publish a NuGet package.
 - Publish a GitHub release.
 - Create release tags.
@@ -312,7 +320,8 @@ The following are not yet authorized:
 - Change the approved architecture.
 - Change stable finding codes.
 
-These require completion of the relevant future gate.
+These require completion of the relevant future gate or separate release
+authorization.
 
 ---
 
@@ -328,13 +337,15 @@ Resolved during GC-DHI-02:
 - Package ID: `DbHealthInspector.Tool`; the NuGet API returned 404 for the ID on
   2026-07-28.
 - Direct packages: System.CommandLine 2.0.10, Npgsql 10.0.3, xunit.v3 3.2.2,
-  xunit.runner.visualstudio 3.1.5, Microsoft.NET.Test.Sdk 18.8.1 and
-  Testcontainers.PostgreSql 4.13.0.
+  xunit.runner.visualstudio 3.1.5, Microsoft.NET.Test.Sdk 18.8.1,
+  Testcontainers.PostgreSql 4.13.0 and test-only SSH.NET 2026.0.0 with
+  `PrivateAssets=all`.
 - Analyzer baseline: built-in .NET analyzers at `latest-recommended`, style
   enforcement during build and warnings as errors.
-- GitHub Actions matrix: `ubuntu-latest` and `windows-latest`.
+- GitHub Actions required matrix: `Ubuntu`, `Windows` and `PostgreSQL 15`.
 - Remote: `https://github.com/rimch1985-ro/DbHealthInspector.git`.
-- Required `master` checks: `Ubuntu` and `Windows`, strict mode.
+- Required `master` checks: `Ubuntu`, `Windows` and `PostgreSQL 15`; protection
+  remains enabled.
 
 Resolved during GC-DHI-03A:
 
@@ -357,9 +368,23 @@ Resolved during GC-DHI-03B:
 - Summary counts and overall risk are derived deterministically from final
   collections.
 
+Resolved during GC-DHI-04F:
+
+- The PostgreSQL adapter has one public snapshot provider over the approved
+  04A–04E primitives.
+- PostgreSQL 15.18 and 18.4 are permanent CI targets with shared cross-version
+  Core contract assertions.
+- One validated schema filter is reused by D001/E001/E002 composition.
+- Productive SQL remains the exact ten-statement closed inventory.
+- PG-06 is fully completed after final inventory, validator, parameterization,
+  documentation, 15/18 and package-safety verification.
+- Pull-request package provenance uses the canonical feature head while tests
+  continue to execute the synthetic merge result; push provenance uses
+  `github.sha`.
+
 Pending product decisions:
 
-- Reproducible invalid-index test strategy.
+- Reproducible invalid-index test strategy for the diagnostic-rule phase.
 - Console rendering format.
 - Final CLI error format.
 - Connection-source precedence.
@@ -375,14 +400,14 @@ Pending product decisions:
 | Risk | Current control |
 |---|---|
 | Scope growth | Frozen v0.1.0 exclusions |
-| Unsafe SQL | Read-only transaction and SQL allowlist |
+| Unsafe SQL | Read-only transaction and closed SQL allowlist |
 | Secret exposure | Mandatory redaction and leakage tests |
 | Statistics misinterpretation | Confidence and evidence model |
 | Duplicate-index false positives | Exact structural equivalence only |
-| PostgreSQL version differences | Adapter boundaries and 15/18 CI matrix |
+| PostgreSQL version differences | Permanent 15.18/18.4 CI matrix and shared assertions |
 | Overengineering | Three-project architecture |
 | Package licensing ambiguity | Dependency review before adoption |
-| Unreliable invalid-index fixture | Separate technical spike |
+| Unreliable invalid-index fixture | Separate diagnostic-rule strategy |
 | Report contract drift | JSON Schema versioning |
 
 ---
@@ -441,28 +466,27 @@ GC-DHI-02 will be approved when:
 
 ## 14. GC-DHI-04 definition record
 
-| Item | Defined value |
+| Item | Verified value |
 |---|---|
 | Phase | PostgreSQL Metadata Adapter |
 | Sequence | `GC-DHI-04A → GC-DHI-04B → GC-DHI-04C → GC-DHI-04D → GC-DHI-04E → GC-DHI-04F` |
-| Closed | `GC-DHI-04A — Connection Boundary and Secret Hygiene`; `GC-DHI-04B — Read-Only Session and SQL Safety Kernel`; `GC-DHI-04C — Server Metadata and Capability Probe`; `GC-DHI-04D — Table Snapshot Query and Mapping`; `GC-DHI-04E — Index Snapshot Query and Mapping` |
-| Definition corrected, implementation unauthorized | `GC-DHI-04F — Snapshot Provider Composition and PostgreSQL Verification` |
+| Closed | `GC-DHI-04A — Connection Boundary and Secret Hygiene`; `GC-DHI-04B — Read-Only Session and SQL Safety Kernel`; `GC-DHI-04C — Server Metadata and Capability Probe`; `GC-DHI-04D — Table Snapshot Query and Mapping`; `GC-DHI-04E — Index Snapshot Query and Mapping`; `GC-DHI-04F — Snapshot Provider Composition and PostgreSQL Verification` |
+| Phase status | `COMPLETED` |
 | Architecture | `PostgreSql → Core`; Core has no infrastructure dependency |
 | Safety | Static inventoried SQL, parameterized external values, explicit read-only transaction |
 | GC-DHI-04B transaction | `RepeatableRead`, read-only, non-deferrable, rollback only |
 | GC-DHI-04B timeouts | Statement 30 s; lock 5 s; idle-in-transaction 60 s |
-| GC-DHI-04B inventory | Exactly B001, B002 and B003 |
-| Current inventory | Exactly B001–B003, C001–C004, D001, E001 and E002; ten statements total |
-| GC-DHI-04E inventory | Ten statements, eight kinds, two parameter types, ten definitions and ten frozen contracts |
-| Supported versions | PostgreSQL 15.18 and 18.4 pinned; permanent verification required in GC-DHI-04F implementation |
-| Product implementation | GC-DHI-04E approved and closed; GC-DHI-04F definition corrected but implementation unauthorized and not started |
+| Productive inventory | Exactly B001–B003, C001–C004, D001, E001 and E002; ten statements total |
+| Inventory totals | Ten statements, eight kinds, two parameter types, ten definitions and ten frozen contracts |
+| Validator | 800 ID/kind/SQL combinations; exactly 10 accepted and 790 rejected |
+| Supported versions | PostgreSQL 15.18 and 18.4 permanently verified |
+| Product implementation | GC-DHI-04A through GC-DHI-04F approved and closed |
+| PG-06 | Completed by GC-DHI-04F final verification |
 
-Each subgate requires implementation by Claude Code, Codex review, correction
-when needed, human approval, PR integration, green CI, governance registration
-and closure before the next subgate may begin. GC-DHI-04A and GC-DHI-04B are
-approved and closed. GC-DHI-04C, GC-DHI-04D and GC-DHI-04E are also approved
-and closed. GC-DHI-04F's definition is corrected; implementation remains
-unauthorized and not started.
+All six PostgreSQL Metadata Adapter subgates completed their required definition,
+implementation/review where applicable, human authorization, PR integration,
+canonical CI/artifact verification, governance registration and closure. No
+Phase 4 implementation is authorized by completion of GC-DHI-04.
 
 ## 15. GC-DHI-04A integration record
 
@@ -494,7 +518,7 @@ unauthorized and not started.
 | Item | Verified value |
 |---|---|
 | Integration authorization date | `2026-08-01` |
-| Backlog coverage | `PG-02` completed; `PG-06` foundation completed; full `PG-06` remains for GC-DHI-04F |
+| Backlog coverage | `PG-02` completed; `PG-06` foundation completed; full `PG-06` deferred to GC-DHI-04F |
 | Pull request | `#4` — `https://github.com/rimch1985-ro/DbHealthInspector/pull/4` |
 | Files integrated | 44 files; 7737 insertions and 4 deletions |
 | Implementation commit | `fcefe276a78c0945defcfd4062998a441cf2f44c` |
@@ -525,7 +549,7 @@ unauthorized and not started.
 
 ## 17. GC-DHI-04C definition record
 
-| Item | Defined value |
+| Item | Verified value |
 |---|---|
 | Definition date | `2026-08-01` |
 | Backlog item | `PG-03` completed |
@@ -580,7 +604,7 @@ unauthorized and not started.
 
 ## 19. GC-DHI-04D integration and closure record
 
-| Item | Defined value |
+| Item | Verified value |
 |---|---|
 | Definition date | `2026-08-01` |
 | Backlog item | `PG-04` completed |
@@ -612,7 +636,7 @@ unauthorized and not started.
 
 ## 20. GC-DHI-04E definition record
 
-| Item | Defined value |
+| Item | Verified value |
 |---|---|
 | Definition date | `2026-08-10` |
 | Backlog item | `PG-05` implemented and integrated |
@@ -676,7 +700,7 @@ unauthorized and not started.
 | Definition date | `2026-08-10` |
 | Definition | `docs/gates/GC-DHI-04F_DEFINITION.md` |
 | D1 correction date | `2026-08-10` |
-| Gate state | `GC-DHI-04F DEFINITION CORRECTED — AWAITING HUMAN IMPLEMENTATION AUTHORIZATION` |
+| Corrected definition commit | `b952012ed3ced4ef72c9d97039500e0a8c53d0f9` |
 | Provider API | Exactly one new public type: `PostgreSqlDatabaseSnapshotProvider` |
 | Capture topology | One connection, one verified session, one `RepeatableRead` read-only non-deferrable rollback-only transaction |
 | Composition | C001–C004 → D001 → E001 and conditional E002; one immutable schema filter |
@@ -691,10 +715,51 @@ unauthorized and not started.
 | PostgreSQL 15 | `postgres:15.18@sha256:6eb0add3b77c081df18aa518ce43df58fdcc40f2e6d868a6fd08038dc7acd425` |
 | PostgreSQL 18 | `postgres:18.4@sha256:3a82e1f56c8f0f5616a11103ac3d47e632c3938698946a7ad26da0df1334744a` |
 | Definition probe | PostgreSQL 15.18 executed all ten frozen contracts successfully; disposable container removed |
-| PG-06 | Full completion remains assigned to GC-DHI-04F and is not yet completed |
-| Implementation | Unauthorized, unimplemented and not started |
+| Final implementation state | Integrated and approved; see §23 |
+| Final gate state | `APPROVED AND CLOSED` |
+| PG-06 | `COMPLETED` |
 
-## 23. Recommended next action
+## 23. GC-DHI-04F integration and closure record
 
-Await human review of the corrected GC-DHI-04F definition.
-No GC-DHI-04F implementation is authorized.
+| Item | Verified value |
+|---|---|
+| Implementation integration date | `2026-08-19` |
+| Closure date | `2026-08-19` |
+| Backlog coverage | Final composition of PG-01 through PG-05; PG-06 completed |
+| Pull request | `#8` — `https://github.com/rimch1985-ro/DbHealthInspector/pull/8` |
+| Implementation commit | `657e1596c1bbc34d592136933abd823df4e89f58` |
+| CI provenance correction | `0624652fd0d117e03ac72d1bf53e30c21cda852a` |
+| SSH.NET security correction | `57b4d3f76a6fb1cf6d84b05c051895f3f4468b77` |
+| Merge commit | `1206cedd2eebc4d3b0cbf05ef0cc8c359bb8b177` |
+| Merge parents | `b952012ed3ced4ef72c9d97039500e0a8c53d0f9`, `57b4d3f76a6fb1cf6d84b05c051895f3f4468b77` |
+| Pull-request CI | `32296079038` (#45) — Ubuntu, PostgreSQL 15 and Windows passed |
+| Master CI | `32297138214` (#46) — Ubuntu `96210964615`, PostgreSQL 15 `96210965000`, Windows `96210965118` |
+| Ubuntu tests | 1935 unit, 13 non-server, 174 PostgreSQL 18; 2122 total; 0 failed; 0 skipped |
+| PostgreSQL 15 tests | 24 passed, 0 failed, 0 skipped |
+| Windows tests | 1935 unit, 13 non-server; 1948 total; 0 failed; 0 skipped; CLI smoke passed |
+| Build | Zero warnings and zero errors in all three canonical jobs |
+| PostgreSQL 18 | `postgres:18.4@sha256:3a82e1f56c8f0f5616a11103ac3d47e632c3938698946a7ad26da0df1334744a` |
+| PostgreSQL 15 | `postgres:15.18@sha256:6eb0add3b77c081df18aa518ce43df58fdcc40f2e6d868a6fd08038dc7acd425` |
+| Inventory | B001, B002, B003, C001, C002, C003, C004, D001, E001, E002 |
+| Validator | 800 combinations; exactly 10 accepted and 790 rejected |
+| Canonical artifact | `dbhealth-bootstrap-package`; ID `9381656515`; 973024 bytes |
+| Artifact digest / downloaded ZIP | `sha256:367da3484178f003432898f9a58e7d6a475efa2fc5da094cbcc0e60aeafcf890` |
+| Canonical package | `DbHealthInspector.Tool.0.1.0-alpha.0.nupkg`; 977570 bytes |
+| Package SHA-256 | `36F56758865227B2C8C873E4D9BD1922D46D257A47DAE5CFF287C598A69D2197` |
+| Package provenance | Repository commit and CLI version both reference `1206cedd2eebc4d3b0cbf05ef0cc8c359bb8b177` |
+| Package leakage | No SSH.NET, Renci.SshNet, Testcontainers or xUnit runtime asset |
+| Isolated installation | Exact canonical package installed successfully; bootstrap-only help; version `0.1.0-alpha.0+1206cedd2eebc4d3b0cbf05ef0cc8c359bb8b177`; temporary install removed |
+| Required checks | `Ubuntu`, `Windows`, `PostgreSQL 15` |
+| PG-06 | All five final criteria satisfied; `COMPLETED` |
+| Publication state | No tag, GitHub Release or NuGet publication |
+| Gate state | `APPROVED AND CLOSED` |
+| Phase state | PostgreSQL Metadata Adapter `COMPLETED` |
+
+The full evidence narrative is recorded in
+`docs/gates/GC-DHI-04F_REPORT.md`.
+
+## 24. Recommended next action
+
+Define the next Phase 4 — Diagnostic Rules — gate and its authorization
+criteria. No DBH001–DBH005 implementation, release, tag or NuGet publication is
+authorized by GC-DHI-04F closure.
