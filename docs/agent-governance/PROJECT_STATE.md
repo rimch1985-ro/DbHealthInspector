@@ -1,6 +1,9 @@
 # PROJECT_STATE — DbHealth Inspector
 
-**Last updated:** 2026-08-19  
+**Last updated:** 2026-08-21  
+**Current master:** `2ca2b0a81290b90650315a7bbc358e159eeaf720`  
+**GC-DHI-05A integration date:** 2026-08-21  
+**GC-DHI-05A closure date:** 2026-08-21  
 **GC-DHI-04F implementation integration date:** 2026-08-19  
 **GC-DHI-04F closure date:** 2026-08-19  
 **GC-DHI-04F definition date:** 2026-08-10  
@@ -14,9 +17,11 @@
 **GC-DHI-04C integration authorization date:** 2026-08-01  
 **GC-DHI-04C closure date:** 2026-08-01  
 **GC-DHI-04B closure date:** 2026-08-01  
-**Current phase:** PostgreSQL Metadata Adapter completed; transition to Phase 4 — Diagnostic Rules  
-**Current gate:** GC-DHI-04F approved and closed  
-**Authorized next action:** Define the next Phase 4 Diagnostic Rules gate; no Phase 4 implementation is authorized  
+**Current phase:** Phase 4 — Diagnostic Rules; GC-DHI-05A complete  
+**Current gate:** GC-DHI-05A approved and closed  
+**Authorized next action:** Define GC-DHI-05B only; no GC-DHI-05B implementation is authorized  
+**Phase 3 PostgreSQL Metadata Adapter:** complete  
+**Phase 4 Diagnostic Rules:** GC-DHI-05A complete  
 **PG-01:** completed  
 **PG-02:** completed  
 **PG-03:** completed  
@@ -29,6 +34,7 @@
 **GC-DHI-04D:** approved and closed  
 **GC-DHI-04E:** approved and closed  
 **GC-DHI-04F:** approved and closed  
+**GC-DHI-05A:** approved and closed  
 **GC-DHI-03B closure date:** 2026-07-30  
 **GC-DHI-04A closure date:** 2026-07-31  
 **Target release:** v0.1.0-rc.1
@@ -39,6 +45,36 @@
 
 DbHealth Inspector has a locally and remotely validated .NET 10 repository at
 `https://github.com/rimch1985-ro/DbHealthInspector`.
+
+Canonical `master` is
+`2ca2b0a81290b90650315a7bbc358e159eeaf720`. GC-DHI-05A — Functional
+Diagnostic Rules and Inspection Orchestration — implemented DBH001 through
+DBH005 in the engine-neutral Core layer and integrated them through pull
+request `#10`. The implementation commit is
+`578cec7eefc72dd0061c79f41a1d910d0e4f5bd2`; the explicit merge commit is
+`2ca2b0a81290b90650315a7bbc358e159eeaf720`.
+
+The current internal functional pipeline is:
+
+```text
+PostgreSQL
+→ DatabaseSnapshot
+→ DBH001–DBH005
+→ InspectionResult
+```
+
+The Core diagnostic layer is complete and integrated. The remaining MVP work
+is to compose the PostgreSQL snapshot provider and diagnostic rules into the
+user-facing inspection command and present the resulting findings. The CLI
+does not yet expose a functional end-to-end database inspection command.
+
+Canonical master CI run `32504689172` passed Ubuntu, Windows and PostgreSQL 15.
+Ubuntu reported 2030 UnitTests, 13 non-server integration tests and 174
+PostgreSQL 18 tests; Windows reported 2030 UnitTests, 13 non-server integration
+tests and a passing CLI smoke; PostgreSQL 15 reported 24 tests. Every partition
+had zero failures, zero skipped tests, zero build warnings and zero build
+errors. Pack and package-provenance verification passed, producing internal
+Actions artifact `9454837161` without a NuGet publication.
 
 GC-DHI-04A through GC-DHI-04F are approved and closed. GC-DHI-04F — Snapshot
 Provider Composition and PostgreSQL Verification — was implemented through the
@@ -104,9 +140,10 @@ matrix and package/leakage scans are green. PG-06 is therefore completed.
 
 `master` remains protected and requires `Ubuntu`, `Windows` and `PostgreSQL 15`.
 No force push, rebase, squash, tag, release, NuGet publication or branch-
-protection mutation was performed. GC-DHI-04F and the PostgreSQL Metadata
-Adapter phase are closed; the next work is definition of the Phase 4 Diagnostic
-Rules gate under separate human authorization.
+protection mutation was performed. The PostgreSQL Metadata Adapter phase is
+complete and GC-DHI-05A is approved and closed. The next authorized action is
+definition of GC-DHI-05B only; this closure does not authorize its
+implementation.
 
 ---
 
@@ -149,11 +186,11 @@ Codex preserves capacity by avoiding duplicate feature implementation and focusi
 
 | Code | Name | Status |
 |---|---|---|
-| DBH001 | `TABLE_WITHOUT_PRIMARY_KEY` | Approved for v0.1.0 |
-| DBH002 | `LARGE_TABLE` | Approved for v0.1.0 |
-| DBH003 | `EXACT_DUPLICATE_INDEX` | Approved for v0.1.0 |
-| DBH004 | `UNUSED_INDEX_CANDIDATE` | Approved for v0.1.0 |
-| DBH005 | `INVALID_INDEX` | Approved for v0.1.0 |
+| DBH001 | `TABLE_WITHOUT_PRIMARY_KEY` | Implemented and integrated in GC-DHI-05A |
+| DBH002 | `LARGE_TABLE` | Implemented and integrated in GC-DHI-05A |
+| DBH003 | `EXACT_DUPLICATE_INDEX` | Implemented and integrated in GC-DHI-05A |
+| DBH004 | `UNUSED_INDEX_CANDIDATE` | Implemented and integrated in GC-DHI-05A |
+| DBH005 | `INVALID_INDEX` | Implemented and integrated in GC-DHI-05A |
 
 ---
 
@@ -293,14 +330,29 @@ Codex preserves capacity by avoiding duplicate feature implementation and focusi
   completed.
 - The human project owner approved and closed GC-DHI-04F on 2026-08-19. The
   PostgreSQL Metadata Adapter phase is completed.
+- GC-DHI-05A implemented the five approved Core diagnostics, validated
+  `DiagnosticThresholds`, explicit `ApprovedDiagnostics` composition,
+  deterministic findings and capability-aware DBH004 execution while reusing
+  the existing `InspectionOrchestrator` and `OverallRiskCalculator`.
+- The central acceptance test produced exactly five findings — two Info, two
+  Warning and one Critical — with `OverallRisk.High` and `HasErrors == false`.
+- The independently reviewed implementation commit
+  `578cec7eefc72dd0061c79f41a1d910d0e4f5bd2` was integrated through pull
+  request `#10` by merge commit
+  `2ca2b0a81290b90650315a7bbc358e159eeaf720`.
+- Canonical master CI `32504689172` passed Ubuntu, Windows and PostgreSQL 15;
+  all tests, build, pack and package-provenance checks passed with no failures,
+  skips, warnings or errors.
+- The human project owner approved and closed GC-DHI-05A on 2026-08-21. Phase
+  4 Diagnostic Rules is complete through GC-DHI-05A.
 
 ---
 
 ## 7. Work authorized next
 
-Define the technical scope and authorization criteria for the next Phase 4 —
-Diagnostic Rules — gate. No Phase 4 diagnostic implementation is authorized by
-GC-DHI-04F closure.
+Define the technical scope and authorization criteria for GC-DHI-05B —
+Functional user-facing PostgreSQL inspection CLI. Definition only is
+authorized; GC-DHI-05B implementation is not authorized by this closure.
 
 ---
 
@@ -308,9 +360,9 @@ GC-DHI-04F closure.
 
 The following are not yet authorized:
 
-- Implement production diagnostic rules.
-- Start implementation of the next functional gate before its definition and
-  explicit human authorization.
+- Implement GC-DHI-05B or expose the user-facing
+  `dbhealth inspect postgresql` command before its definition and explicit
+  human authorization.
 - Publish a NuGet package.
 - Publish a GitHub release.
 - Create release tags.
@@ -382,9 +434,21 @@ Resolved during GC-DHI-04F:
   continue to execute the synthetic merge result; push provenance uses
   `github.sha`.
 
+Resolved during GC-DHI-05A:
+
+- DBH001 through DBH005 are pure, deterministic Core rules over one
+  engine-neutral `DatabaseSnapshot`.
+- Default thresholds are one million estimated rows, one GiB of total table
+  size and ten MiB of index size; comparisons are inclusive.
+- DBH004 requires `UsageStatistics` and is skipped by the existing orchestrator
+  when that capability is unavailable.
+- `ApprovedDiagnostics` composes exactly the five approved rules without
+  reflection, plugins or a new infrastructure layer.
+- Diagnostic-rule validation uses focused Core tests and introduces no new SQL
+  or PostgreSQL fixture.
+
 Pending product decisions:
 
-- Reproducible invalid-index test strategy for the diagnostic-rule phase.
 - Console rendering format.
 - Final CLI error format.
 - Connection-source precedence.
@@ -758,8 +822,33 @@ Phase 4 implementation is authorized by completion of GC-DHI-04.
 The full evidence narrative is recorded in
 `docs/gates/GC-DHI-04F_REPORT.md`.
 
-## 24. Recommended next action
+## 24. GC-DHI-05A integration and closure record
 
-Define the next Phase 4 — Diagnostic Rules — gate and its authorization
-criteria. No DBH001–DBH005 implementation, release, tag or NuGet publication is
-authorized by GC-DHI-04F closure.
+| Item | Verified value |
+|---|---|
+| Gate | `GC-DHI-05A — Functional Diagnostic Rules and Inspection Orchestration` |
+| Closure date | `2026-08-21` |
+| Definition | `docs/gates/GC-DHI-05A_DEFINITION.md` |
+| Definition SHA-256 | `eb7a482d362be0fc6eba1a0c9ce30e5f233c89473e4d5d22894504418827d76e` |
+| Implementation commit | `578cec7eefc72dd0061c79f41a1d910d0e4f5bd2` |
+| Pull request | `#10` — `https://github.com/rimch1985-ro/DbHealthInspector/pull/10` |
+| Merge commit / current master | `2ca2b0a81290b90650315a7bbc358e159eeaf720` |
+| Canonical master CI | `32504689172` — event `push`; Ubuntu, Windows and PostgreSQL 15 passed |
+| Ubuntu job | `96842088107`; 2030 unit, 13 non-server and 174 PostgreSQL 18 tests; 0 failed/skipped/warnings/errors |
+| Windows job | `96842088494`; 2030 unit and 13 non-server tests; CLI smoke passed; 0 failed/skipped/warnings/errors |
+| PostgreSQL 15 job | `96842088416`; 24 passed; 0 failed/skipped/warnings/errors |
+| Package evidence | Pack and provenance passed; internal Actions artifact ID `9454837161` |
+| Functional result | Five findings: 2 Info, 2 Warning, 1 Critical; `OverallRisk.High`; `HasErrors == false` |
+| Internal pipeline | `PostgreSQL → DatabaseSnapshot → DBH001–DBH005 → InspectionResult` |
+| Reused components | Existing `InspectionOrchestrator` and `OverallRiskCalculator` |
+| Publication state | No tag, GitHub Release or NuGet publication |
+| Gate state | `APPROVED AND CLOSED` |
+
+The full closure evidence is recorded in
+`docs/gates/GC-DHI-05A_REPORT.md`.
+
+## 25. Recommended next action
+
+Define GC-DHI-05B — Functional user-facing PostgreSQL inspection CLI — under a
+separate gate. No GC-DHI-05B implementation, release, tag or NuGet publication
+is authorized by GC-DHI-05A closure.
