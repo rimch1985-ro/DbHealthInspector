@@ -81,19 +81,32 @@ internal static class DiagnosticSnapshotBuilder
         IReadOnlyCollection<TableSnapshot>? tables = null,
         IReadOnlyCollection<IndexSnapshot>? indexes = null,
         DateTimeOffset? statisticsResetAtUtc = null,
-        CapabilityStatus usageStatistics = CapabilityStatus.Available) =>
+        CapabilityStatus usageStatistics = CapabilityStatus.Available,
+        CapabilityStatus catalogMetadata = CapabilityStatus.Available) =>
         new(
             new DatabaseMetadata(DatabaseEngine.PostgreSql, "18.4", "inspector_test"),
             [new SchemaSnapshot(Schema)],
             tables ?? [],
             indexes ?? [],
-            Capabilities(usageStatistics),
+            Capabilities(usageStatistics, catalogMetadata),
             new StatisticsSnapshot(statisticsResetAtUtc));
 
-    private static CapabilitySnapshot Capabilities(CapabilityStatus usageStatistics) =>
+    /// <summary>
+    /// <paramref name="catalogMetadata"/> defaults to <see cref="CapabilityStatus.Available"/>, so
+    /// every existing caller is unaffected. It becomes settable for the unsupported-server case,
+    /// where the provider composes a snapshot with the required capability unavailable and no
+    /// relations at all.
+    /// </summary>
+    private static CapabilitySnapshot Capabilities(
+        CapabilityStatus usageStatistics, CapabilityStatus catalogMetadata) =>
         new(
         [
-            new CapabilityState(CapabilityKind.CatalogMetadata, CapabilityStatus.Available),
+            catalogMetadata == CapabilityStatus.Available
+                ? new CapabilityState(CapabilityKind.CatalogMetadata, CapabilityStatus.Available)
+                : new CapabilityState(
+                    CapabilityKind.CatalogMetadata,
+                    catalogMetadata,
+                    "The server version is not supported."),
             usageStatistics == CapabilityStatus.Available
                 ? new CapabilityState(CapabilityKind.UsageStatistics, CapabilityStatus.Available)
                 : new CapabilityState(
