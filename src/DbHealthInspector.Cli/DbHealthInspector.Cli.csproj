@@ -6,12 +6,12 @@
     <PackageId>DbHealthInspector.Tool</PackageId>
     <Version>0.1.0-alpha.0</Version>
     <Authors>Rolando Iván Medrano Chávez</Authors>
-    <Description>Read-only PostgreSQL metadata diagnostics CLI. Bootstrap baseline; inspection features are not implemented yet.</Description>
+    <Description>Read-only PostgreSQL metadata diagnostics CLI. Inspects a live PostgreSQL database and reports DBH001-DBH005 health findings on the console.</Description>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageTags>postgresql;database;diagnostics;metadata;read-only;cli</PackageTags>
     <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
-    <PackageReleaseNotes>Repository bootstrap and technical baseline only. No database inspection behavior is included.</PackageReleaseNotes>
+    <PackageReleaseNotes>Adds the functional 'dbhealth inspect postgresql' command: a read-only inspection that reports DBH001-DBH005 findings, summary counts and overall risk on the console. JSON and file reports are not included.</PackageReleaseNotes>
     <PackageProjectUrl>https://github.com/rimch1985-ro/DbHealthInspector</PackageProjectUrl>
     <RepositoryUrl>https://github.com/rimch1985-ro/DbHealthInspector</RepositoryUrl>
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
